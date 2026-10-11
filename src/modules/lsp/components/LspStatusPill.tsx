@@ -3,6 +3,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useT } from "@/lib/i18n";
 import { setLspActivation } from "@/modules/settings/store";
 import {
   Cancel01Icon,
@@ -28,6 +29,7 @@ const PILL_CLASS =
   "terax-pill-in ml-1.5 flex h-6 shrink-0 cursor-pointer [&_button]:cursor-pointer items-center gap-1 rounded-full border border-border/50 bg-accent/50 px-2 text-[10.5px] font-medium text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground";
 
 export function LspStatusPill({ filePath }: Props) {
+  const t = useT();
   const hint = useLspHint(filePath);
   if (!hint) return null;
 
@@ -38,10 +40,10 @@ export function LspStatusPill({ filePath }: Props) {
           type="button"
           className="flex items-center gap-1"
           onClick={() => void setLspActivation(hint.preset.id, "enabled")}
-          title={`Start ${hint.preset.command} for this workspace`}
+          title={t("lsp.pill.enableTitle", { command: hint.preset.command })}
         >
           <HugeiconsIcon icon={SourceCodeIcon} size={11} strokeWidth={2} />
-          <span>Enable {hint.preset.name} LSP</span>
+          <span>{t("lsp.pill.enable", { name: hint.preset.name })}</span>
         </button>
         <DismissButton preset={hint.preset} />
       </span>
@@ -74,16 +76,17 @@ export function LspStatusPill({ filePath }: Props) {
 }
 
 function ErrorPill({ preset, reason }: { preset: LspPreset; reason: string }) {
+  const t = useT();
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
           className={PILL_CLASS}
-          title="Language server stopped"
+          title={t("lsp.pill.stopped")}
         >
           <span className="size-1.5 rounded-full bg-destructive" />
-          <span>{preset.name} LSP</span>
+          <span>{t("lsp.pill.name", { name: preset.name })}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -92,7 +95,7 @@ function ErrorPill({ preset, reason }: { preset: LspPreset; reason: string }) {
         className="w-72 p-3 text-xs [&_button]:cursor-pointer"
       >
         <div className="mb-1 font-medium text-foreground">
-          {preset.name} language server stopped
+          {t("lsp.pill.stoppedTitle", { name: preset.name })}
         </div>
         <p className="mb-2 text-muted-foreground">{reason}</p>
         <div className="flex items-center gap-1.5">
@@ -102,14 +105,14 @@ function ErrorPill({ preset, reason }: { preset: LspPreset; reason: string }) {
             onClick={() => void restartPresetSessions(preset.id)}
           >
             <HugeiconsIcon icon={RefreshIcon} size={11} strokeWidth={1.9} />
-            Restart
+            {t("lsp.pill.restart")}
           </button>
           <button
             type="button"
             className="rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => void setLspActivation(preset.id, "dismissed")}
           >
-            Disable
+            {t("lsp.pill.disable")}
           </button>
         </div>
       </PopoverContent>
@@ -118,12 +121,13 @@ function ErrorPill({ preset, reason }: { preset: LspPreset; reason: string }) {
 }
 
 function DismissButton({ preset }: { preset: LspPreset }) {
+  const t = useT();
   return (
     <button
       type="button"
       className="rounded-full p-0.5 hover:bg-foreground/10"
       onClick={() => void setLspActivation(preset.id, "dismissed")}
-      title="Dismiss (you can re-enable from Settings)"
+      title={t("lsp.pill.dismiss")}
     >
       <HugeiconsIcon icon={Cancel01Icon} size={9} strokeWidth={2.2} />
     </button>
@@ -131,6 +135,7 @@ function DismissButton({ preset }: { preset: LspPreset }) {
 }
 
 function InstallPill({ preset }: { preset: LspPreset }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
   const install = preset.install;
@@ -154,7 +159,7 @@ function InstallPill({ preset }: { preset: LspPreset }) {
         <PopoverTrigger asChild>
           <button type="button" className="flex items-center gap-1">
             <HugeiconsIcon icon={SourceCodeIcon} size={11} strokeWidth={2} />
-            <span>Install {preset.name} LSP</span>
+            <span>{t("lsp.pill.install", { name: preset.name })}</span>
           </button>
         </PopoverTrigger>
         <DismissButton preset={preset} />
@@ -165,12 +170,12 @@ function InstallPill({ preset }: { preset: LspPreset }) {
         className="w-80 p-3 text-xs [&_button]:cursor-pointer"
       >
         <div className="mb-2 font-medium text-foreground">
-          {preset.name} language server
+          {t("lsp.pill.serverName", { name: preset.name })}
         </div>
         <p className="mb-2 text-muted-foreground">
-          Terax found no{" "}
-          <code className="text-foreground">{preset.command}</code> on your
-          PATH. Install it, then check again:
+          {t("settings.lsp.install.descriptionPre")}{" "}
+          <code className="text-foreground">{preset.command}</code>{" "}
+          {t("settings.lsp.install.descriptionPost")}
         </p>
         {install ? (
           <div className="mb-2 flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1.5 font-mono text-[11px]">
@@ -181,7 +186,7 @@ function InstallPill({ preset }: { preset: LspPreset }) {
               type="button"
               className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={copy}
-              title="Copy command"
+              title={t("lsp.pill.copyCommand")}
             >
               <HugeiconsIcon
                 icon={copied ? Tick02Icon : Copy01Icon}
@@ -198,7 +203,7 @@ function InstallPill({ preset }: { preset: LspPreset }) {
               className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
               onClick={() => void openUrl(install.docsUrl).catch(console.error)}
             >
-              Documentation
+              {t("settings.lsp.install.documentation")}
             </button>
           ) : (
             <span />
@@ -209,7 +214,9 @@ function InstallPill({ preset }: { preset: LspPreset }) {
             onClick={checkAgain}
             disabled={checking}
           >
-            {checking ? "Checking..." : "Check again"}
+            {checking
+              ? t("settings.lsp.install.checking")
+              : t("settings.lsp.install.checkAgain")}
           </button>
         </div>
       </PopoverContent>
@@ -224,6 +231,7 @@ function ActivePill({
   preset: LspPreset;
   starting: boolean;
 }) {
+  const t = useT();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -231,7 +239,7 @@ function ActivePill({
           type="button"
           className={PILL_CLASS}
           title={
-            starting ? "Language server starting" : "Language server active"
+            starting ? t("lsp.pill.starting") : t("lsp.pill.active")
           }
         >
           {starting ? (
@@ -244,7 +252,7 @@ function ActivePill({
           ) : (
             <span className="size-1.5 rounded-full bg-emerald-500" />
           )}
-          <span>{preset.name} LSP</span>
+          <span>{t("lsp.pill.name", { name: preset.name })}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -253,11 +261,12 @@ function ActivePill({
         className="w-64 p-3 text-xs [&_button]:cursor-pointer"
       >
         <div className="mb-1 font-medium text-foreground">
-          {preset.name} language server
+          {t("lsp.pill.serverName", { name: preset.name })}
         </div>
         <p className="mb-2 text-muted-foreground">
-          <code className="text-foreground">{preset.command}</code>{" "}
-          {starting ? "is starting" : "is running"} for this workspace.
+          {starting
+            ? t("lsp.pill.runningStarting", { command: preset.command })
+            : t("lsp.pill.running", { command: preset.command })}
         </p>
         <div className="flex items-center gap-1.5">
           <button
@@ -266,14 +275,14 @@ function ActivePill({
             onClick={() => void restartPresetSessions(preset.id)}
           >
             <HugeiconsIcon icon={RefreshIcon} size={11} strokeWidth={1.9} />
-            Restart
+            {t("lsp.pill.restart")}
           </button>
           <button
             type="button"
             className="rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => void setLspActivation(preset.id, "dismissed")}
           >
-            Disable
+            {t("lsp.pill.disable")}
           </button>
         </div>
       </PopoverContent>

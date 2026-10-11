@@ -1,5 +1,6 @@
 import "@/modules/terminal/block/block.css";
 
+import { t as translate } from "@/lib/i18n";
 import { buildTerminalTheme } from "@/styles/terminalTheme";
 import {
   acceptCompletion,
@@ -424,7 +425,7 @@ export function createShellEditor(opts: ShellEditorOptions): ShellEditorHandle {
       completionNav,
       ...(opts.suggest ? inlineSuggestion(opts.suggest) : []),
       ...(opts.historyList ? historyPopover(opts.historyList) : []),
-      placeholder(opts.placeholderText ?? "Run a command"),
+      placeholder(opts.placeholderText ?? translate("terminal.runCommand")),
       ...(opts.onChange
         ? [
             EditorView.updateListener.of((u) => {

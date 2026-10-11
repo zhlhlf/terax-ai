@@ -1,3 +1,4 @@
+import type { TranslationKey, TranslationParams } from "@/lib/i18n";
 import type { PaneNode } from "@/modules/terminal";
 
 export const AGENT_LAUNCHERS = [
@@ -57,26 +58,39 @@ export const DEFAULT_AGENT_LAUNCH_COMMANDS: AgentLaunchCommands =
 const MAX_AGENT_COMMAND_LENGTH = 256;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
+export type AgentCommandError = {
+  key: TranslationKey;
+  params?: TranslationParams;
+};
+
 export type AgentCommandValidation =
   | { ok: true; command: string }
-  | { ok: false; error: string };
+  | { ok: false; error: AgentCommandError };
 
 export function validateAgentLaunchCommand(
   value: unknown,
 ): AgentCommandValidation {
   if (typeof value !== "string") {
-    return { ok: false, error: "Enter a start command." };
+    return { ok: false, error: { key: "agentsPanel.launcher.error.required" } };
   }
   const command = value.trim();
-  if (!command) return { ok: false, error: "Enter a start command." };
+  if (!command) {
+    return { ok: false, error: { key: "agentsPanel.launcher.error.required" } };
+  }
   if (command.length > MAX_AGENT_COMMAND_LENGTH) {
     return {
       ok: false,
-      error: `Keep the command under ${MAX_AGENT_COMMAND_LENGTH} characters.`,
+      error: {
+        key: "agentsPanel.launcher.error.tooLong",
+        params: { max: MAX_AGENT_COMMAND_LENGTH },
+      },
     };
   }
   if (CONTROL_CHARACTERS.test(command)) {
-    return { ok: false, error: "Use a single-line command." };
+    return {
+      ok: false,
+      error: { key: "agentsPanel.launcher.error.singleLine" },
+    };
   }
   return { ok: true, command };
 }

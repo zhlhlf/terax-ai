@@ -1,4 +1,5 @@
 import { native } from "@/modules/ai/lib/native";
+import { useT } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,7 @@ export function useRepositoryTargeting({
   openSourceControl,
   openCommitHistoryTab,
 }: Params) {
+  const t = useT();
   const [targets, setTargets] = useState<SourceControlRepositoryTargets>({});
   const sourceControlRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
@@ -57,7 +59,7 @@ export function useRepositoryTargeting({
           return null;
         }
         if (!repo) {
-          toast.info("No Git repository contains this folder.");
+          toast.info(t("sourceControl.noRepoContainsFolder"));
         }
         return repo;
       } catch (error) {
@@ -65,14 +67,14 @@ export function useRepositoryTargeting({
           requestId === requestRef.current &&
           isContextCurrent(spaceId, workspaceKey)
         ) {
-          toast.error("Could not resolve Git repository", {
+          toast.error(t("sourceControl.resolveRepoFailed"), {
             description: String(error),
           });
         }
         return null;
       }
     },
-    [isContextCurrent, spaceId, workspaceKey],
+    [isContextCurrent, spaceId, t, workspaceKey],
   );
 
   const openInSourceControl = useCallback(

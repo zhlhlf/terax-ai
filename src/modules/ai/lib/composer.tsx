@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { t } from "@/lib/i18n";
 import { useWhisperRecording } from "../hooks/useWhisperRecording";
 import { expandSnippetTokens, type Snippet } from "../lib/snippets";
 import { tryRunSlashCommand, type SlashCommandMeta } from "./slashCommands";
@@ -132,8 +133,8 @@ export function AiComposerProvider({ children }: ProviderProps) {
           id: sel.id,
           name:
             sel.source === "editor"
-              ? "Editor selection"
-              : "Terminal selection",
+              ? t("ai.chip.editorSelection")
+              : t("ai.chip.terminalSelection"),
           kind: "selection",
           mediaType: "text/plain",
           text: sel.text,

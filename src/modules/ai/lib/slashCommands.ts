@@ -3,6 +3,7 @@ import {
   ClaudeIcon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
+import { t, type TranslationKey } from "@/lib/i18n";
 import { usePlanStore } from "../store/planStore";
 
 /**
@@ -44,7 +45,7 @@ Use grep/glob/list_directory/read_file to explore. Cap TERAX.md under 200 lines.
 export type SlashCommandMeta = {
   name: string;
   invocation: string;
-  label: string;
+  labelKey: TranslationKey;
   icon: typeof SparklesIcon;
 };
 
@@ -52,19 +53,19 @@ export const SLASH_COMMANDS: Record<string, SlashCommandMeta> = {
   init: {
     name: "init",
     invocation: "/init",
-    label: "Initialize workspace",
+    labelKey: "ai.cmd.init",
     icon: SparklesIcon,
   },
   plan: {
     name: "plan",
     invocation: "/plan",
-    label: "Plan mode",
+    labelKey: "ai.cmd.plan",
     icon: CheckListIcon,
   },
   "claude-code": {
     name: "claude-code",
     invocation: "/claude-code",
-    label: "Delegate to Claude Code",
+    labelKey: "ai.cmd.claudeCode",
     icon: ClaudeIcon,
   },
 };
@@ -89,13 +90,13 @@ export function tryRunSlashCommand(input: string): SlashOutcome {
       const store = usePlanStore.getState();
       if (tail === "off" || tail === "exit") {
         store.disable();
-        return { kind: "handled", toast: "Plan mode off" };
+        return { kind: "handled", toast: t("ai.cmd.plan.off") };
       }
       store.toggle();
       const nowActive = usePlanStore.getState().active;
       return {
         kind: "handled",
-        toast: nowActive ? "Plan mode on" : "Plan mode off",
+        toast: nowActive ? t("ai.cmd.plan.on") : t("ai.cmd.plan.off"),
       };
     }
     case "init": {
@@ -107,7 +108,7 @@ export function tryRunSlashCommand(input: string): SlashOutcome {
     }
     case "claude-code": {
       if (!tail) {
-        return { kind: "handled", toast: "Usage: /claude-code <request>" };
+        return { kind: "handled", toast: t("ai.cmd.claudeCode.usage") };
       }
       return {
         kind: "send-prompt",

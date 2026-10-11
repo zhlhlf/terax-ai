@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { highlightingFor, indentUnit, language } from "@codemirror/language";
 import {
   type Extension,
@@ -322,7 +323,7 @@ export function lspInteractions(opts: {
     } catch {
       return;
     }
-    showResults(view, "Definitions", normalizeLocations(result));
+    showResults(view, t("lsp.locations.definitions"), normalizeLocations(result));
   };
 
   const findReferences = async (
@@ -339,7 +340,7 @@ export function lspInteractions(opts: {
     } catch {
       return;
     }
-    showResults(view, "References", result ?? []);
+    showResults(view, t("lsp.locations.references"), result ?? []);
   };
 
   return [

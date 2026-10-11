@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import {
   clearAgentActivity,
   ensureAgentActivityListener,
@@ -58,18 +59,18 @@ export async function openPty(
         if (notice !== undefined) toast.dismiss(notice);
         notice = undefined;
       } else if (status === "stalled" || status === "failed") {
-        notice = toast.error("Terminal output paused", {
+        notice = toast.error(t("terminal.outputPaused.title"), {
           id: notice,
           duration: Number.POSITIVE_INFINITY,
           description:
             status === "failed"
-              ? "The terminal could not process output. Reopen this terminal to recover."
-              : "Waiting for the terminal connection. Delivery will resume automatically.",
+              ? t("terminal.outputPaused.failed")
+              : t("terminal.outputPaused.stalled"),
           action:
             status === "failed"
               ? undefined
               : {
-                  label: "Retry",
+                  label: t("terminal.outputPaused.retry"),
                   onClick: () => receiver.retry(),
                 },
         });

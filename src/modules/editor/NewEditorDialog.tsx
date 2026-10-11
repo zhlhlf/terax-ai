@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useT } from "@/lib/i18n";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { File02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -32,6 +33,7 @@ export function NewEditorDialog({
   rootPath,
   onCreated,
 }: Props) {
+  const t = useT();
   const [name, setName] = useState("untitled.txt");
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,15 +56,15 @@ export function NewEditorDialog({
   const submit = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Name is required");
+      setError(t("editor.newFile.error.nameRequired"));
       return;
     }
     if (trimmed.includes("..")) {
-      setError("Path must be relative");
+      setError(t("editor.newFile.error.relative"));
       return;
     }
     if (!rootPath) {
-      setError("No workspace root");
+      setError(t("editor.newFile.error.noRoot"));
       return;
     }
     const path = trimmed.startsWith("/")
@@ -86,11 +88,10 @@ export function NewEditorDialog({
         <DialogHeader>
           <DialogTitle className="flex gap-1.75">
             <HugeiconsIcon icon={File02Icon} size={16} strokeWidth={1.75} />
-            New file
+            {t("editor.newFile.title")}
           </DialogTitle>
           <DialogDescription>
-            Filename (relative to workspace root). The extension determines the
-            language mode.
+            {t("editor.newFile.description")}
           </DialogDescription>
         </DialogHeader>
         <Input
@@ -117,9 +118,11 @@ export function NewEditorDialog({
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("editor.newFile.cancel")}
           </Button>
-          <Button onClick={() => void submit()}>Create</Button>
+          <Button onClick={() => void submit()}>
+            {t("editor.newFile.create")}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

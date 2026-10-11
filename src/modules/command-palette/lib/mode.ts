@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/lib/i18n";
 import type { PaletteMode } from "../types";
 
 export type ParsedQuery = {
@@ -21,7 +22,11 @@ export function parseQuery(raw: string): ParsedQuery {
   return { mode: "commands", term: raw.trim(), raw };
 }
 
-export const MODE_HINTS: ReadonlyArray<{ sigil: string; label: string }> = [
-  { sigil: ">", label: "Search command history" },
-  { sigil: "#", label: "Find text in files" },
+export const MODE_HINTS: ReadonlyArray<{
+  sigil: string;
+  label: string;
+  labelKey: TranslationKey;
+}> = [
+  { sigil: ">", label: "Search command history", labelKey: "palette.mode.history" },
+  { sigil: "#", label: "Find text in files", labelKey: "palette.mode.content" },
 ];

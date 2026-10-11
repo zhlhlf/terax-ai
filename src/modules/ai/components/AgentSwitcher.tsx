@@ -6,6 +6,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { type TFn, type TranslationKey, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import {
@@ -32,7 +33,44 @@ const ICONS: Record<AgentIconId, typeof CodeIcon> = {
   spark: SparklesIcon,
 };
 
+// Built-in agents carry English name/description in `agents.ts` (their
+// `instructions` are sent to the model, so only these two are localized).
+const BUILTIN_AGENT_KEYS: Record<
+  string,
+  { name: TranslationKey; description: TranslationKey }
+> = {
+  "builtin:coder": {
+    name: "agent.builtin.coder.name",
+    description: "agent.builtin.coder.description",
+  },
+  "builtin:architect": {
+    name: "agent.builtin.architect.name",
+    description: "agent.builtin.architect.description",
+  },
+  "builtin:reviewer": {
+    name: "agent.builtin.reviewer.name",
+    description: "agent.builtin.reviewer.description",
+  },
+  "builtin:security": {
+    name: "agent.builtin.security.name",
+    description: "agent.builtin.security.description",
+  },
+  "builtin:designer": {
+    name: "agent.builtin.designer.name",
+    description: "agent.builtin.designer.description",
+  },
+};
+
+type DisplayAgent = { name: string; description: string };
+
+function displayAgent(a: { id: string; name: string; description: string }, t: TFn): DisplayAgent {
+  const keys = BUILTIN_AGENT_KEYS[a.id];
+  if (!keys) return { name: a.name, description: a.description };
+  return { name: t(keys.name), description: t(keys.description) };
+}
+
 export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
+  const t = useT();
   // Subscribe to customAgents + activeId so the trigger updates live.
   const customAgents = useAgentsStore((s) => s.customAgents);
   const activeId = useAgentsStore((s) => s.activeId);
@@ -42,6 +80,7 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
   void customAgents; // keeps the store subscription alive
 
   const active = list.find((a) => a.id === activeId) ?? list[0];
+  const activeDisplay = displayAgent(active, t);
   const builtIn = list.filter((a) => a.builtIn);
   const custom = list.filter((a) => !a.builtIn);
   const ActiveIcon = ICONS[active.icon] ?? SparklesIcon;
@@ -57,10 +96,10 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
               ? "flex h-6 items-center gap-1 rounded-md border border-border/60 bg-card px-1.5 text-[10.5px] text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground"
               : "text-xs mr-1",
           )}
-          title={`Agent: ${active.name}`}
+          title={t("ai.agent.title", { name: activeDisplay.name })}
         >
           <HugeiconsIcon icon={ActiveIcon} size={11} strokeWidth={1.75} />
-          <span className="max-w-[7rem] truncate">{active.name}</span>
+          <span className="max-w-[7rem] truncate">{activeDisplay.name}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             size={10}
@@ -71,10 +110,11 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-60">
         <div className="px-2 pt-1.5 pb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-          Built-in
+          {t("ai.agent.builtIn")}
         </div>
         {builtIn.map((a) => {
           const Icon = ICONS[a.icon] ?? SparklesIcon;
+          const display = displayAgent(a, t);
           return (
             <DropdownMenuItem
               key={a.id}
@@ -96,9 +136,9 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
                 )}
               />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span>{a.name}</span>
+                <span>{display.name}</span>
                 <span className="line-clamp-1 text-[10.5px] text-muted-foreground">
-                  {a.description}
+                  {display.description}
                 </span>
               </span>
               {a.id === activeId ? (
@@ -116,7 +156,7 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
           <>
             <DropdownMenuSeparator />
             <div className="px-2 pt-1 pb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-              Custom
+              {t("ai.agent.custom")}
             </div>
             {custom.map((a) => {
               const Icon = ICONS[a.icon] ?? SparklesIcon;
@@ -162,7 +202,7 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
           className="gap-2 text-[12px] text-muted-foreground"
         >
           <HugeiconsIcon icon={Settings01Icon} size={12} strokeWidth={1.75} />
-          Manage agents…
+          {t("ai.agent.manage")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

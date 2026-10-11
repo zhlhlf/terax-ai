@@ -1,4 +1,5 @@
 import { homeRelativePath } from "@/lib/homeRelativePath";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AiInputBarConnect } from "@/modules/ai";
 import { Chip } from "@/modules/ai/components/Chip";
@@ -51,6 +52,7 @@ export function WorkspaceInputBar({
   keysLoaded,
   onConnect,
 }: Props) {
+  const t = useT();
   const c = useComposer();
   const { os, shell } = useSystemInfo();
 
@@ -112,7 +114,11 @@ export function WorkspaceInputBar({
         </Chip>
       )}
       {branch && (
-        <Chip tone="violet" icon={GitBranchIcon} title={`Branch: ${branch}`}>
+        <Chip
+          tone="violet"
+          icon={GitBranchIcon}
+          title={t("app.input.branch", { branch })}
+        >
           {branch}
         </Chip>
       )}
@@ -156,7 +162,7 @@ export function WorkspaceInputBar({
                       className="text-sm text-muted-foreground hover:text-foreground"
                       onClick={() => focusLeafInput(activeLeafId)}
                     >
-                      Type directly in the terminal
+                      {t("app.input.typeDirectly")}
                     </button>
                   ) : (
                     <Suspense fallback={null}>
@@ -209,6 +215,7 @@ function ModeToggle({
   mode: "shell" | "ai";
   onChange: (next: "shell" | "ai") => void;
 }) {
+  const t = useT();
   return (
     <div className="relative grid shrink-0 grid-cols-2 rounded-md p-0.5 text-[10.5px] ring-1 ring-inset ring-border/35">
       <span
@@ -221,13 +228,13 @@ function ModeToggle({
       <SegButton
         active={mode === "shell"}
         icon={TerminalIcon}
-        label="Shell"
+        label={t("app.input.shell")}
         onClick={() => onChange("shell")}
       />
       <SegButton
         active={mode === "ai"}
         icon={AiContentGenerator02Icon}
-        label="AI"
+        label={t("app.input.ai")}
         onClick={() => onChange("ai")}
       />
     </div>

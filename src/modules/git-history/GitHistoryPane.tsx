@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { t, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   native,
@@ -102,7 +103,7 @@ function normalizeError(error: unknown): string {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
-  return "Unknown error";
+  return t("gitHistory.unknownError");
 }
 
 function absoluteTime(secs: number): string {
@@ -194,6 +195,7 @@ export function GitHistoryPane({
   onOpenCommitFile,
   onSearchHandle,
 }: Props) {
+  const t = useT();
   const [commits, setCommits] = useState<GitLogEntry[]>([]);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -511,26 +513,28 @@ export function GitHistoryPane({
           <CenterPlaceholder>
             <Spinner className="size-4" />
             <span className="text-[11.5px] text-muted-foreground">
-              Loading commits…
+              {t("gitHistory.loadingCommits")}
             </span>
           </CenterPlaceholder>
         ) : loadStatus === "error" && commits.length === 0 ? (
           <CenterPlaceholder>
             <div className="text-[13px] font-medium">
-              Could not load history
+              {t("gitHistory.loadError")}
             </div>
             <div className="max-w-md text-[11px] leading-relaxed text-muted-foreground">
-              {error ?? "Unknown error"}
+              {error ?? t("gitHistory.unknownError")}
             </div>
             <Button size="sm" onClick={handleRefresh}>
-              Retry
+              {t("gitHistory.retry")}
             </Button>
           </CenterPlaceholder>
         ) : commits.length === 0 ? (
           <CenterPlaceholder>
-            <div className="text-[13px] font-medium">No commits yet</div>
+            <div className="text-[13px] font-medium">
+              {t("gitHistory.noCommits")}
+            </div>
             <div className="max-w-md text-[11px] leading-relaxed text-muted-foreground">
-              This branch has no commits.
+              {t("gitHistory.branchNoCommits")}
             </div>
           </CenterPlaceholder>
         ) : (
@@ -543,12 +547,12 @@ export function GitHistoryPane({
               }}
             >
               <div />
-              <div className="pl-px">SHA</div>
-              <div className="min-w-0">Subject</div>
+              <div className="pl-px">{t("gitHistory.col.sha")}</div>
+              <div className="min-w-0">{t("gitHistory.col.subject")}</div>
               <div />
-              <div className="ml-2">Author</div>
-              <div className="text-right">Date</div>
-              <div className="text-right">Changes</div>
+              <div className="ml-2">{t("gitHistory.col.author")}</div>
+              <div className="text-right">{t("gitHistory.col.date")}</div>
+              <div className="text-right">{t("gitHistory.col.changes")}</div>
             </div>
             <div
               ref={scrollRef}
@@ -594,24 +598,24 @@ export function GitHistoryPane({
               {loadStatus === "more" ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-muted-foreground">
                   <Spinner className="size-3" />
-                  Loading more…
+                  {t("gitHistory.loadingMore")}
                 </div>
               ) : null}
               {endReached && !activeSearch ? (
                 <div className="py-3 text-center text-[10.5px] text-muted-foreground/65">
-                  End of history
+                  {t("gitHistory.endOfHistory")}
                 </div>
               ) : null}
               {loadStatus === "error" && commits.length > 0 ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-destructive">
-                  {error ?? "Failed to load more"}
+                  {error ?? t("gitHistory.failedMore")}
                   <Button
                     size="xs"
                     variant="ghost"
                     className="h-6 cursor-pointer text-[11px]"
                     onClick={() => void loadMore()}
                   >
-                    Retry
+                    {t("gitHistory.retry")}
                   </Button>
                 </div>
               ) : null}
@@ -703,6 +707,7 @@ const CommitRow = memo(function CommitRow({
   gridTemplate,
   onClick,
 }: CommitRowProps) {
+  const t = useT();
   const date = compactDate(commit.timestampSecs);
   const initials = authorInitials(commit.author);
   const totalStat = commit.insertions + commit.deletions;
@@ -740,7 +745,9 @@ const CommitRow = memo(function CommitRow({
         {commit.subject ? (
           highlight(commit.subject, query)
         ) : (
-          <span className="text-muted-foreground">(no subject)</span>
+          <span className="text-muted-foreground">
+            {t("gitHistory.noSubject")}
+          </span>
         )}
       </span>
       <span aria-hidden />
@@ -757,7 +764,9 @@ const CommitRow = memo(function CommitRow({
           {initials}
         </span>
         <span className="min-w-0 truncate">
-          {commit.author ? highlight(commit.author, query) : "Unknown"}
+          {commit.author
+            ? highlight(commit.author, query)
+            : t("gitHistory.unknownAuthor")}
         </span>
       </span>
       <span className="text-right font-mono text-[10.5px] tabular-nums text-muted-foreground/75">
@@ -767,7 +776,15 @@ const CommitRow = memo(function CommitRow({
         {commit.filesChanged > 0 ? (
           <span
             className="inline-flex items-center gap-1 text-muted-foreground/75"
-            title={`${commit.filesChanged} ${commit.filesChanged === 1 ? "file" : "files"} changed`}
+            title={
+              commit.filesChanged === 1
+                ? t("gitHistory.filesChangedOne", {
+                    count: commit.filesChanged,
+                  })
+                : t("gitHistory.filesChangedOther", {
+                    count: commit.filesChanged,
+                  })
+            }
           >
             <HugeiconsIcon
               icon={File02Icon}
@@ -825,6 +842,7 @@ function CommitDetail({
   onOpenFile,
   onRetryFiles,
 }: CommitDetailProps) {
+  const t = useT();
   const absolute = absoluteTime(commit.timestampSecs);
   const webUrl = remoteWeb ? commitWebUrl(remoteWeb, commit.sha) : null;
   const [copied, setCopied] = useState(false);
@@ -844,12 +862,16 @@ function CommitDetail({
           </span>
           <div className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug text-foreground">
             {commit.subject || (
-              <span className="text-muted-foreground">(no subject)</span>
+              <span className="text-muted-foreground">
+                {t("gitHistory.noSubject")}
+              </span>
             )}
           </div>
         </div>
         <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          <span className="truncate">{commit.author || "Unknown"}</span>
+          <span className="truncate">
+            {commit.author || t("gitHistory.unknownAuthor")}
+          </span>
           {commit.authorEmail ? (
             <>
               <span className="text-muted-foreground/45">·</span>
@@ -873,7 +895,7 @@ function CommitDetail({
             }}
           >
             <HugeiconsIcon icon={Copy01Icon} size={11} strokeWidth={1.9} />
-            {copied ? "Copied" : "Copy SHA"}
+            {copied ? t("gitHistory.copied") : t("gitHistory.copySha")}
           </Button>
           {webUrl ? (
             <Button
@@ -887,7 +909,7 @@ function CommitDetail({
                 size={11}
                 strokeWidth={1.9}
               />
-              {hostLabel(remoteWeb!)}
+              {hostLabel(remoteWeb!, t)}
             </Button>
           ) : null}
         </div>
@@ -919,11 +941,12 @@ function CommitFiles({
   ) => Promise<void> | void;
   onRetry: () => void;
 }) {
+  const t = useT();
   if (!filesEntry || filesEntry.state === "loading") {
     return (
       <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
         <Spinner className="size-3" />
-        Loading files…
+        {t("gitHistory.loadingFiles")}
       </div>
     );
   }
@@ -937,7 +960,7 @@ function CommitFiles({
           className="h-6 cursor-pointer text-[11px]"
           onClick={onRetry}
         >
-          Retry
+          {t("gitHistory.retry")}
         </Button>
       </div>
     );
@@ -945,14 +968,14 @@ function CommitFiles({
   if (filesEntry.files.length === 0) {
     return (
       <div className="px-3 py-3 text-[11px] text-muted-foreground">
-        No file changes.
+        {t("gitHistory.noFileChanges")}
       </div>
     );
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center justify-between px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/85">
-        <span>Files</span>
+        <span>{t("gitHistory.files")}</span>
         <span className="rounded-sm bg-muted/55 px-1 py-px text-[9.5px] tabular-nums text-muted-foreground/85 normal-case tracking-normal">
           {filesEntry.files.length}
         </span>
@@ -980,6 +1003,7 @@ const FileRow = memo(function FileRow({
   file: GitCommitFileChange;
   onOpen: () => void;
 }) {
+  const t = useT();
   const fileName = basename(file.path);
   const dir = dirname(file.path);
   const iconUrl = fileIconUrl(fileName);
@@ -1006,7 +1030,9 @@ const FileRow = memo(function FileRow({
       </div>
       <div className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums">
         {file.isBinary ? (
-          <span className="text-muted-foreground/70">binary</span>
+          <span className="text-muted-foreground/70">
+            {t("gitHistory.binary")}
+          </span>
         ) : (
           <>
             {file.added > 0 ? (

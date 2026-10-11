@@ -433,8 +433,11 @@ export async function loadPreferences(): Promise<Preferences> {
     restoreWindowState:
       get<boolean>(KEY_RESTORE_WINDOW) ??
       DEFAULT_PREFERENCES.restoreWindowState,
-    windowVibrancy:
-      get<boolean>(KEY_WINDOW_VIBRANCY) ?? DEFAULT_PREFERENCES.windowVibrancy,
+    // A config written before the toggle existed has no key. Defaulting it to
+    // the fresh-install `true` would force the backdrop on the next launch and
+    // hide the CSS-painted rounded corners, which is the bug that surfaced the
+    // setting in the first place, so an absent key keeps the corners.
+    windowVibrancy: get<boolean>(KEY_WINDOW_VIBRANCY) ?? false,
     autocompleteEnabled:
       get<boolean>(KEY_AUTOCOMPLETE_ENABLED) ??
       DEFAULT_PREFERENCES.autocompleteEnabled,

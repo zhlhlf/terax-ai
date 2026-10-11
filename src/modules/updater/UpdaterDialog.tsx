@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { useT } from "@/lib/i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 import { useUpdater } from "./useUpdater";
@@ -38,6 +39,7 @@ function formatBytes(n: number): string {
 }
 
 export function UpdaterDialog() {
+  const t = useT();
   const { status, install, dismiss } = useUpdater();
   const [copied, setCopied] = useState(false);
   const [distro, setDistro] = useState<DistroKey>("arch");
@@ -88,23 +90,28 @@ export function UpdaterDialog() {
         <DialogHeader>
           <DialogTitle>
             {ready
-              ? "Update ready"
+              ? t("updater.ready.title")
               : downloading
-                ? "Downloading update…"
-                : manual
-                  ? `Terax v${manual.version} is available`
-                  : `Terax v${update?.version} is available`}
+                ? t("updater.downloading.title")
+                : t("updater.available.title", {
+                    version: (manual?.version ?? update?.version) ?? "",
+                  })}
           </DialogTitle>
           <DialogDescription>
             {ready
-              ? "Restart Terax to finish installing."
+              ? t("updater.ready.body")
               : downloading
                 ? progress !== null
-                  ? `${progress.toFixed(0)}% — ${formatBytes(status.downloaded)}`
+                  ? t("updater.downloading.progress", {
+                      percent: progress.toFixed(0),
+                      size: formatBytes(status.downloaded),
+                    })
                   : formatBytes(status.downloaded)
                 : manual
-                  ? `You're on v${manual.currentVersion}. Pick your distro and run the command, or grab the package from GitHub.`
-                  : update?.body || "A new version is ready to install."}
+                  ? t("updater.manual.body", {
+                      current: manual.currentVersion,
+                    })
+                  : update?.body || t("updater.available.body")}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,7 +148,7 @@ export function UpdaterDialog() {
                 className="h-7 px-2 text-[11px]"
                 onClick={() => void copyCommand()}
               >
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("updater.copied") : t("updater.copy")}
               </Button>
             </div>
           </div>
@@ -151,23 +158,23 @@ export function UpdaterDialog() {
           {status.kind === "available" && (
             <>
               <Button variant="ghost" size="sm" onClick={dismiss}>
-                Later
+                {t("updater.later")}
               </Button>
               <Button size="sm" onClick={() => void install()}>
-                Install &amp; restart
+                {t("updater.installRestart")}
               </Button>
             </>
           )}
           {manual && (
             <>
               <Button variant="ghost" size="sm" onClick={dismiss}>
-                Later
+                {t("updater.later")}
               </Button>
               <Button
                 size="sm"
                 onClick={() => void openUrl(manual.releaseUrl)}
               >
-                Download package
+                {t("updater.downloadPackage")}
               </Button>
             </>
           )}

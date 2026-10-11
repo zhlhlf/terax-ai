@@ -117,7 +117,7 @@ describe("vibrancy application", () => {
     expect(backdrop).toHaveLength(1);
   });
 
-  it("paints opaque and disables natively when the platform reports none", async () => {
+  it("still enables the effect natively when the platform finds no backdrop", async () => {
     const root = fakeDocument();
     root.style.backgroundColor = "";
     core.invoke.mockResolvedValue("none");
@@ -125,13 +125,43 @@ describe("vibrancy application", () => {
 
     await vibrancy.applyVibrancy(true, true);
 
-    expect(root.attrs.has("data-vibrancy")).toBe(false);
-    expect(root.style.backgroundColor).toBe("#141414");
+    expect(root.attrs.get("data-vibrancy")).toBe("on");
     const backdrop = core.invoke.mock.calls.filter(
       (c) => c[0] === "window_set_backdrop",
     );
-    expect(backdrop).toEqual([["window_set_backdrop", { enabled: false, dark: true }]]);
+    expect(backdrop).toEqual([
+      ["window_set_backdrop", { enabled: true, dark: true }],
+    ]);
   });
+
+  it("forces the backdrop on when the platform only offers the opt-in kind", async () => {
+    fakeDocument();
+    core.invoke.mockResolvedValue("windows-force");
+    const vibrancy = await loadModule();
+
+    await vibrancy.applyVibrancy(true, true);
+
+    expect(core.invoke).toHaveBeenCalledWith("window_set_backdrop", {
+      enabled: true,
+      dark: true,
+    });
+  });
+
+  it("rebuilds a forced mica-like backdrop on a dark-mode flip", async () => {
+    fakeDocument();
+    core.invoke.mockResolvedValue("none");
+    const vibrancy = await loadModule();
+
+    await vibrancy.applyVibrancy(true, true);
+    await vibrancy.applyVibrancy(true, false);
+
+    const backdrop = core.invoke.mock.calls.filter(
+      (c) => c[0] === "window_set_backdrop",
+    );
+    expect(backdrop).toHaveLength(2);
+    expect(backdrop[1][1]).toEqual({ enabled: true, dark: false });
+  });
+
 
   it("repaints opaque when the native side fails so the webview is never see-through", async () => {
     const root = fakeDocument();

@@ -1,11 +1,16 @@
 import { CodeIcon, HashtagIcon, TerminalIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ReactNode } from "react";
+import { type TranslationKey, useT } from "@/lib/i18n";
 import type { FileAttachment } from "../lib/composer";
 import type { Snippet } from "../lib/snippets";
 import { Chip } from "./Chip";
 
-type CommandChip = { name: string; label: string; icon: typeof HashtagIcon };
+type CommandChip = {
+  name: string;
+  labelKey: TranslationKey;
+  icon: typeof HashtagIcon;
+};
 
 type Props = {
   files: FileAttachment[];
@@ -27,6 +32,7 @@ export function ChipsRow({
   onRemoveCommand,
   leading,
 }: Props) {
+  const t = useT();
   const hasAttachments =
     files.length > 0 || snippets.length > 0 || commands.length > 0;
   if (!leading && !hasAttachments) return null;
@@ -37,9 +43,9 @@ export function ChipsRow({
         <Chip
           key={`cmd-${cmd.name}`}
           icon={cmd.icon}
-          title={cmd.label}
+          title={t(cmd.labelKey)}
           onRemove={() => onRemoveCommand(cmd.name)}
-          removeLabel="Remove command"
+          removeLabel={t("ai.chip.removeCommand")}
         >
           #{cmd.name}
         </Chip>
@@ -51,7 +57,7 @@ export function ChipsRow({
           icon={HashtagIcon}
           title={s.description || s.name}
           onRemove={() => onRemoveSnippet(s.id)}
-          removeLabel="Remove snippet"
+          removeLabel={t("ai.chip.removeSnippet")}
         >
           {s.handle}
         </Chip>

@@ -1,3 +1,5 @@
+import type { TFn } from "@/lib/i18n";
+
 export type RemoteWebHost = "github" | "gitlab" | "bitbucket";
 
 export type RemoteWebInfo = {
@@ -70,13 +72,13 @@ export function commitWebUrl(info: RemoteWebInfo, sha: string): string {
   }
 }
 
-export function hostLabel(info: RemoteWebInfo): string {
+export function hostLabel(info: RemoteWebInfo, t: TFn): string {
   switch (info.host) {
     case "github":
-      return "View on GitHub";
+      return t("gitHistory.viewOnGithub");
     case "gitlab":
-      return "View on GitLab";
+      return t("gitHistory.viewOnGitlab");
     case "bitbucket":
-      return "View on Bitbucket";
+      return t("gitHistory.viewOnBitbucket");
   }
 }

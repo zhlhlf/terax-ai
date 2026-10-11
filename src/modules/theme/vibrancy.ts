@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 /** Mirrors `Backdrop` in `src-tauri/src/modules/vibrancy.rs`. */
-export type Backdrop = "vibrancy" | "mica" | "none";
+export type Backdrop = "vibrancy" | "mica" | "windows-force" | "none";
 
 /** Must stay in sync with the pre-paint script in index.html. */
 export const PREPAINT_BG = { dark: "#141414", light: "#ffffff" } as const;
@@ -28,7 +28,12 @@ export function applyVibrancy(enabled: boolean, dark: boolean): Promise<void> {
 
 async function run(enabled: boolean, dark: boolean): Promise<void> {
   const kind = await getBackdropKind();
-  const on = enabled && kind !== "none";
+  // The switch is the user's intent, not a platform capability: a kind of
+  // `none` or `windows-force` means the platform has no backdrop to offer, not
+  // that one is forbidden. On Windows 11 21H2 Mica needs the undocumented
+  // attribute and costs the CSS-painted rounded corners, so the user opts into
+  // it rather than the platform deciding for them.
+  const on = enabled;
   const root = document.documentElement;
 
   const paintOpaque = () => {
@@ -44,9 +49,9 @@ async function run(enabled: boolean, dark: boolean): Promise<void> {
     paintOpaque();
   }
 
-  // Mica tints its own backdrop and cannot read the webview theme, so it has
-  // to be rebuilt on a mode flip; NSVisualEffectView adapts on its own.
-  const key = on ? (kind === "mica" ? `on:${dark}` : "on") : "off";
+  // Only NSVisualEffectView adapts to the theme on its own; Mica (documented or
+  // undocumented) tints its own backdrop and has to be rebuilt on a mode flip.
+  const key = on ? (kind === "vibrancy" ? "on" : `on:${dark}`) : "off";
   if (key === applied) return;
 
   try {

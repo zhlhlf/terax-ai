@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { WindowControls } from "@/components/WindowControls";
+import { useT } from "@/lib/i18n";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
 import { NotificationBell } from "@/modules/agents";
 import type { AgentLaunchRequest } from "@/modules/agents/lib/launcher";
@@ -86,6 +87,7 @@ export function Header({
   searchTarget,
   searchRef,
 }: Props) {
+  const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
 
@@ -106,7 +108,7 @@ export function Header({
       size="icon"
       className="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
       onClick={onOpenSettings}
-      title="Settings"
+      title={t("header.settings.title")}
     >
       <HugeiconsIcon icon={Settings01Icon} size={15} strokeWidth={1.75} />
     </Button>
@@ -123,7 +125,7 @@ export function Header({
       <div className="flex shrink-0 items-center gap-0.5">
         <Button
           onClick={onToggleSidebar}
-          title="Toggle sidebar"
+          title={t("header.toggleSidebar")}
           variant="ghost"
           size="icon-sm"
           className="shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -135,7 +137,7 @@ export function Header({
           size="icon-sm"
           variant="ghost"
           onClick={onOpenCommandPalette}
-          title="Command palette"
+          title={t("header.commandPalette")}
           className="shrink-0 gap-1.5 rounded-md px-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <HugeiconsIcon icon={CommandIcon} size={14} strokeWidth={1.75} />

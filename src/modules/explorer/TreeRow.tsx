@@ -1,5 +1,6 @@
-import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { isPrimaryModifierPressed } from "@/lib/platform";
+import { cn } from "@/lib/utils";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { memo } from "react";
@@ -158,6 +159,7 @@ export function PendingRow({
   onCommit,
   onCancel,
 }: PendingRowProps) {
+  const t = useT();
   return (
     <div
       className="flex h-6 w-full min-w-0 items-center gap-2 px-1.5 text-[13px]"
@@ -173,7 +175,9 @@ export function PendingRow({
       />
       <InlineInput
         initial=""
-        placeholder={kind === "dir" ? "New folder" : "New file"}
+        placeholder={t(
+          kind === "dir" ? "explorer.input.newFolder" : "explorer.input.newFile",
+        )}
         onCommit={onCommit}
         onCancel={onCancel}
       />

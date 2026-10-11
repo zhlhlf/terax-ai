@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import {
   native,
   type GitRepoInfo,
@@ -140,7 +141,7 @@ function normalizeError(error: unknown): string {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
-  return "Unknown source control error";
+  return t("sourceControl.unknownError");
 }
 
 function getContextualAction(
@@ -166,8 +167,7 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↑${summary.ahead} ↓${summary.behind}`,
-      title:
-        "Branch has diverged from upstream. Use Source Control or the terminal to resolve it.",
+      title: t("sourceControl.remote.divergedTitle"),
       disabled: true,
       action: null,
     };
@@ -176,9 +176,10 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↓${summary.behind}`,
-      title: `Pull ${summary.behind} remote ${
-        summary.behind === 1 ? "commit" : "commits"
-      } with fast-forward only.`,
+      title:
+        summary.behind === 1
+          ? t("sourceControl.remote.pullTitleOne", { count: summary.behind })
+          : t("sourceControl.remote.pullTitleOther", { count: summary.behind }),
       disabled: summary.busyAction !== null,
       action: "pull",
     };
@@ -187,17 +188,18 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↑${summary.ahead}`,
-      title: `Push ${summary.ahead} local ${
-        summary.ahead === 1 ? "commit" : "commits"
-      }.`,
+      title:
+        summary.ahead === 1
+          ? t("sourceControl.remote.pushTitleOne", { count: summary.ahead })
+          : t("sourceControl.remote.pushTitleOther", { count: summary.ahead }),
       disabled: summary.busyAction !== null,
       action: "push",
     };
   }
   return {
     visible: true,
-    label: "Sync",
-    title: "Fetch remote updates.",
+    label: t("sourceControl.remote.syncLabel"),
+    title: t("sourceControl.remote.syncTitle"),
     disabled: summary.busyAction !== null,
     action: "fetch",
   };

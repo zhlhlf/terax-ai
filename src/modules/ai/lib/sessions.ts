@@ -61,6 +61,9 @@ export function newSessionId(): string {
   return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Sentinel stored for untitled sessions; rendered through the i18n layer. */
+export const UNTITLED_TITLE = "New chat";
+
 export function deriveTitle(messages: UIMessage[]): string {
   for (const m of messages) {
     if (m.role !== "user") continue;
@@ -76,5 +79,5 @@ export function deriveTitle(messages: UIMessage[]): string {
       return first.length > 40 ? `${first.slice(0, 40)}…` : first;
     }
   }
-  return "New chat";
+  return UNTITLED_TITLE;
 }

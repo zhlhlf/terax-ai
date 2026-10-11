@@ -1,4 +1,5 @@
 import { detectMonoFontFamily } from "@/lib/fonts";
+import { t, type TranslationKey } from "@/lib/i18n";
 import { indentUnit } from "@codemirror/language";
 import { lintGutter } from "@codemirror/lint";
 import { search } from "@codemirror/search";
@@ -13,6 +14,59 @@ export const wrapCompartment = new Compartment();
 export const vimCompartment = new Compartment();
 export const lspCompartment = new Compartment();
 export const indentCompartment = new Compartment();
+
+// CodeMirror resolves panel, announce and merge phrases through this facet.
+// A Proxy keeps every lookup live against the active language, so an open
+// panel or a fresh announcement never sticks to the language at mount.
+const PHRASE_KEYS: Record<string, TranslationKey> = {
+  Find: "editor.search.find",
+  Replace: "editor.search.replace",
+  next: "editor.search.next",
+  previous: "editor.search.previous",
+  all: "editor.search.selectAll",
+  "match case": "editor.search.matchCase",
+  regexp: "editor.search.regexp",
+  "by word": "editor.search.byWord",
+  replace: "editor.search.replaceButton",
+  "replace all": "editor.search.replaceAll",
+  close: "editor.search.close",
+  "Go to line": "editor.gotoLine.label",
+  go: "editor.gotoLine.go",
+  "current match": "editor.search.currentMatch",
+  "on line": "editor.search.onLine",
+  "replaced $ matches": "editor.search.replacedMatches",
+  "replaced match on line $": "editor.search.replacedMatchOnLine",
+  Completions: "editor.cm.completions",
+  "Control character": "editor.cm.controlCharacter",
+  Diagnostics: "editor.cm.diagnostics",
+  "No diagnostics": "editor.cm.noDiagnostics",
+  "folded code": "editor.cm.foldedCode",
+  unfold: "editor.cm.unfold",
+  "Folded lines": "editor.cm.foldedLines",
+  "Unfolded lines": "editor.cm.unfoldedLines",
+  to: "editor.cm.to",
+  "Selection deleted": "editor.cm.selectionDeleted",
+  "Accept": "editor.merge.accept",
+  "Reject": "editor.merge.reject",
+  "Revert this chunk": "editor.merge.revertChunk",
+  "$ unchanged lines": "editor.merge.unchangedLines",
+};
+
+const LIVE_PHRASES = new Proxy(Object.create(null) as Record<string, string>, {
+  get: (_target, prop) =>
+    typeof prop === "string" && prop in PHRASE_KEYS
+      ? t(PHRASE_KEYS[prop])
+      : undefined,
+  getOwnPropertyDescriptor: (_target, prop) =>
+    typeof prop === "string" && prop in PHRASE_KEYS
+      ? { enumerable: true, configurable: true, value: t(PHRASE_KEYS[prop]) }
+      : undefined,
+  ownKeys: () => Object.keys(PHRASE_KEYS),
+});
+
+const PHRASES_EXT: readonly Extension[] = Object.freeze([
+  EditorState.phrases.of(LIVE_PHRASES),
+]);
 
 export function indentExtension(unit: string): Extension {
   return [
@@ -56,6 +110,7 @@ const SHARED_EXTENSIONS: readonly Extension[] = Object.freeze([
   search({ top: true }),
   lintGutter(),
   chromeTheme(),
+  ...PHRASES_EXT,
   EditorView.theme({
     "&, &.cm-editor, &.cm-editor.cm-focused": {
       backgroundColor: "transparent !important",

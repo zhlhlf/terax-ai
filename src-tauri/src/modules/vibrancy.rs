@@ -3,7 +3,8 @@ use serde::Serialize;
 /// The translucent window backdrop a platform can provide.
 ///
 /// Linux is `None` on purpose: blur there is owned by the compositor, not the
-/// app, so the settings toggle is hidden rather than offered as a dead switch.
+/// app, so there is nothing for the app to apply even though the settings
+/// toggle stays visible on every platform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Backdrop {
@@ -11,16 +12,30 @@ pub enum Backdrop {
     Vibrancy,
     /// Windows 11 Mica.
     Mica,
+    /// Windows 11 21H2: `apply_mica` succeeds through the undocumented
+    /// `DWMWA_MICA_EFFECT` attribute, but the backdrop is composited over the
+    /// whole window rectangle, so it reads as a flat dark layer and hides the
+    /// CSS-painted rounded corners. Offered as an explicit opt-in rather than
+    /// reported as `Mica`, which would make the effect look like it came from
+    /// the platform rather than from the user overriding it.
+    WindowsForce,
     None,
 }
 
-/// First Windows 11 build. `apply_mica` fails below it.
-const WIN11_BUILD: u32 = 22000;
+/// First build with the documented `DWMWA_SYSTEMBACKDROP_TYPE` attribute.
+///
+/// Below it `window-vibrancy` falls back to the undocumented
+/// `DWMWA_MICA_EFFECT` (build 22000, the first Windows 11).
+const MICA_BUILD: u32 = 22523;
+/// First Windows 11 build, where the undocumented attribute above becomes
+/// available. Windows 10 has no Mica at all and stays `None`.
+const WINDOWS_11_BUILD: u32 = 22000;
 
 pub fn backdrop_for(os: &str, build: u32) -> Backdrop {
     match os {
         "macos" => Backdrop::Vibrancy,
-        "windows" if build >= WIN11_BUILD => Backdrop::Mica,
+        "windows" if build >= MICA_BUILD => Backdrop::Mica,
+        "windows" if build >= WINDOWS_11_BUILD => Backdrop::WindowsForce,
         _ => Backdrop::None,
     }
 }
@@ -93,7 +108,7 @@ fn set_backdrop(_window: &tauri::Window, _enabled: bool, _dark: bool) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use super::{backdrop_for, Backdrop, WIN11_BUILD};
+    use super::{backdrop_for, Backdrop, MICA_BUILD};
 
     #[test]
     fn macos_reports_vibrancy_regardless_of_build() {
@@ -102,15 +117,24 @@ mod tests {
 
     #[test]
     fn windows_11_reports_mica() {
-        assert_eq!(backdrop_for("windows", WIN11_BUILD), Backdrop::Mica);
+        assert_eq!(backdrop_for("windows", MICA_BUILD), Backdrop::Mica);
         assert_eq!(backdrop_for("windows", 26100), Backdrop::Mica);
     }
 
     #[test]
     fn windows_10_reports_none_because_mica_would_fail() {
-        assert_eq!(backdrop_for("windows", WIN11_BUILD - 1), Backdrop::None);
         assert_eq!(backdrop_for("windows", 19045), Backdrop::None);
         assert_eq!(backdrop_for("windows", 0), Backdrop::None);
+    }
+
+    /// Mica below the documented attribute is composited over the whole window
+    /// rectangle, which covers the CSS-painted rounded corners. It is offered
+    /// as an opt-in rather than reported as a platform backdrop.
+    #[test]
+    fn windows_11_21h2_reports_the_force_kind() {
+        assert_eq!(backdrop_for("windows", 22000), Backdrop::WindowsForce);
+        assert_eq!(backdrop_for("windows", 22000 + 522), Backdrop::WindowsForce);
+        assert_eq!(backdrop_for("windows", 22621), Backdrop::Mica);
     }
 
     #[test]
@@ -125,6 +149,11 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&Backdrop::Vibrancy).unwrap(),
             "\"vibrancy\""
+        );
+        assert_eq!(serde_json::to_string(&Backdrop::Mica).unwrap(), "\"mica\"");
+        assert_eq!(
+            serde_json::to_string(&Backdrop::WindowsForce).unwrap(),
+            "\"windows-force\""
         );
         assert_eq!(serde_json::to_string(&Backdrop::None).unwrap(), "\"none\"");
     }

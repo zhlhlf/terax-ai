@@ -5,6 +5,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useT } from "@/lib/i18n";
 import { IS_WINDOWS } from "@/lib/platform";
 import {
   LOCAL_WORKSPACE,
@@ -25,6 +26,7 @@ export function WorkspaceEnvSelector({ onSelect }: Props) {
 }
 
 function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
+  const t = useT();
   const env = useWorkspaceEnvStore((s) => s.env);
   const distros = useWorkspaceEnvStore((s) => s.distros);
   const loading = useWorkspaceEnvStore((s) => s.loading);
@@ -37,7 +39,10 @@ function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
     }
   };
 
-  const label = env.kind === "wsl" ? `WSL: ${env.distro}` : "Windows";
+  const label =
+    env.kind === "wsl"
+      ? t("statusbar.env.wsl", { distro: env.distro })
+      : t("statusbar.env.windows");
 
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
@@ -45,7 +50,7 @@ function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
         <button
           type="button"
           className="flex h-6 shrink-0 items-center gap-1 rounded-sm px-1.5 text-[11px] text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-accent data-[state=open]:text-foreground"
-          title="Workspace environment"
+          title={t("statusbar.env.title")}
         >
           <HugeiconsIcon
             icon={ServerStack03Icon}
@@ -57,16 +62,16 @@ function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48">
         <DropdownMenuItem onSelect={() => onSelect(LOCAL_WORKSPACE)}>
-          Windows Local
+          {t("statusbar.env.windowsLocal")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {distros.length === 0 ? (
           <DropdownMenuItem disabled>
             {loading
-              ? "Loading WSL distros..."
+              ? t("statusbar.env.loading")
               : error
-                ? "WSL unavailable"
-                : "No WSL distros found"}
+                ? t("statusbar.env.unavailable")
+                : t("statusbar.env.noneFound")}
           </DropdownMenuItem>
         ) : (
           distros.map((distro) => (
@@ -74,14 +79,14 @@ function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
               key={distro.name}
               onSelect={() => onSelect({ kind: "wsl", distro: distro.name })}
             >
-              WSL: {distro.name}
+              {t("statusbar.env.wsl", { distro: distro.name })}
             </DropdownMenuItem>
           ))
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void refreshDistros()}>
           <HugeiconsIcon icon={Refresh01Icon} size={13} strokeWidth={1.75} />
-          Refresh
+          {t("statusbar.env.refresh")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

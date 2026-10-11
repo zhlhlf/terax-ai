@@ -22,6 +22,7 @@ import {
   type CustomEndpoint,
   type ProviderId,
 } from "../config";
+import { t } from "@/lib/i18n";
 import { buildTools, type ToolContext } from "../tools/tools";
 import { compactModelMessagesDetailed } from "./compact";
 import type { ProviderKeys, CustomEndpointKeys } from "./keyring";
@@ -32,25 +33,33 @@ const localProxyFetch = createProxyFetch({ allowPrivateNetwork: true });
 
 const TOOL_LABELS: Record<string, (input: Record<string, unknown>) => string> =
   {
-    read_file: (i) => `Reading ${shortPath(i.path)}`,
-    list_directory: (i) => `Listing ${shortPath(i.path)}`,
-    grep: (i) => `Grepping ${ellipsize(String(i.pattern ?? ""), 40)}`,
-    glob: (i) => `Globbing ${ellipsize(String(i.pattern ?? ""), 40)}`,
-    edit: (i) => `Editing ${shortPath(i.path)}`,
-    multi_edit: (i) => `Editing ${shortPath(i.path)}`,
-    write_file: (i) => `Writing ${shortPath(i.path)}`,
-    create_directory: (i) => `Creating ${shortPath(i.path)}`,
-    bash_run: (i) => `Running ${ellipsize(String(i.command ?? ""), 60)}`,
+    read_file: (i) => t("ai.step.reading", { path: shortPath(i.path) }),
+    list_directory: (i) => t("ai.step.listing", { path: shortPath(i.path) }),
+    grep: (i) =>
+      t("ai.step.grepping", { pattern: ellipsize(String(i.pattern ?? ""), 40) }),
+    glob: (i) =>
+      t("ai.step.globbing", { pattern: ellipsize(String(i.pattern ?? ""), 40) }),
+    edit: (i) => t("ai.step.editing", { path: shortPath(i.path) }),
+    multi_edit: (i) => t("ai.step.editing", { path: shortPath(i.path) }),
+    write_file: (i) => t("ai.step.writing", { path: shortPath(i.path) }),
+    create_directory: (i) => t("ai.step.creating", { path: shortPath(i.path) }),
+    bash_run: (i) =>
+      t("ai.step.running", { command: ellipsize(String(i.command ?? ""), 60) }),
     bash_background: (i) =>
-      `Spawning ${ellipsize(String(i.command ?? ""), 60)}`,
-    bash_logs: () => `Reading logs`,
-    bash_list: () => `Listing background processes`,
-    bash_kill: () => `Stopping background process`,
+      t("ai.step.spawning", { command: ellipsize(String(i.command ?? ""), 60) }),
+    bash_logs: () => t("ai.step.readingLogs"),
+    bash_list: () => t("ai.step.listingJobs"),
+    bash_kill: () => t("ai.step.stoppingJob"),
     suggest_command: (i) =>
-      `Suggesting ${ellipsize(String(i.command ?? ""), 60)}`,
+      t("ai.step.suggesting", {
+        command: ellipsize(String(i.command ?? ""), 60),
+      }),
     todo_write: (i) =>
-      `Updating plan (${Array.isArray(i.todos) ? i.todos.length : 0} items)`,
-    run_subagent: (i) => `Spawning ${String(i.type ?? "subagent")} subagent`,
+      t("ai.step.updatingPlan", {
+        count: Array.isArray(i.todos) ? i.todos.length : 0,
+      }),
+    run_subagent: (i) =>
+      t("ai.step.spawningSubagent", { type: String(i.type ?? "subagent") }),
   };
 
 function shortPath(p: unknown): string {
@@ -81,9 +90,7 @@ export async function buildLanguageModel(
   customEndpointKey?: string | null,
 ): Promise<LanguageModel> {
   if (providerNeedsKey(provider) && !keys[provider]) {
-    throw new Error(
-      `No API key configured for ${provider}. Open Settings → AI to add one.`,
-    );
+    throw new Error(t("ai.error.noApiKey", { provider }));
   }
   const key = keys[provider] ?? "";
   const lmstudioURL = options.lmstudioBaseURL ?? LMSTUDIO_DEFAULT_BASE_URL;
@@ -163,9 +170,7 @@ export async function buildLanguageModel(
     }
     case "openai-compatible": {
       if (!compatURL) {
-        throw new Error(
-          "OpenAI-compatible provider has no base URL. Set it in Settings → Models.",
-        );
+        throw new Error(t("ai.error.compatNoBaseUrl"));
       }
       const { createOpenAICompatible } =
         await import("@ai-sdk/openai-compatible");
@@ -209,7 +214,9 @@ export async function buildLanguageModel(
     }
     default: {
       const _exhaustive: never = provider;
-      throw new Error(`Unsupported provider: ${_exhaustive as ProviderId}`);
+      throw new Error(
+        t("ai.error.unsupportedProvider", { provider: _exhaustive as ProviderId }),
+      );
     }
   }
   modelCache.set(cacheKey, built);
@@ -238,11 +245,9 @@ export function buildConfiguredLanguageModel(
   if (isCompatModelId(modelId)) {
     const eid = endpointIdFromCompatModel(modelId);
     const ep = local.customEndpoints?.find((e) => e.id === eid);
-    if (!ep) throw new Error(`Custom endpoint not found: ${eid}`);
+    if (!ep) throw new Error(t("ai.error.endpointNotFound", { id: eid }));
     if (!ep.modelId.trim()) {
-      throw new Error(
-        `${ep.name}: no model id set. Open Settings → Models.`,
-      );
+      throw new Error(t("ai.error.endpointNoModelId", { name: ep.name }));
     }
     return buildLanguageModel(
       "openai-compatible",
@@ -256,37 +261,27 @@ export function buildConfiguredLanguageModel(
   let resolvedId: string = m.id;
   if (m.id === "lmstudio-local") {
     if (!local.lmstudioModelId?.trim()) {
-      throw new Error(
-        "LM Studio: no model id set. Open Settings → Models and enter the model id loaded in LM Studio.",
-      );
+      throw new Error(t("ai.error.lmstudioNoModelId"));
     }
     resolvedId = local.lmstudioModelId.trim();
   } else if (m.id === "mlx-local") {
     if (!local.mlxModelId?.trim()) {
-      throw new Error(
-        "MLX: no model id set. Open Settings → Models and enter the model id served by mlx_lm.server.",
-      );
+      throw new Error(t("ai.error.mlxNoModelId"));
     }
     resolvedId = local.mlxModelId.trim();
   } else if (m.id === "ollama-local") {
     if (!local.ollamaModelId?.trim()) {
-      throw new Error(
-        "Ollama: no model id set. Open Settings → Models and enter the model id (e.g. the name from `ollama list`).",
-      );
+      throw new Error(t("ai.error.ollamaNoModelId"));
     }
     resolvedId = local.ollamaModelId.trim();
   } else if (m.id === "openai-compatible-custom") {
     if (!local.openaiCompatibleModelId?.trim()) {
-      throw new Error(
-        "OpenAI-compatible: no model id set. Open Settings → Models.",
-      );
+      throw new Error(t("ai.error.compatNoModelId"));
     }
     resolvedId = local.openaiCompatibleModelId.trim();
   } else if (m.id === "openrouter-custom") {
     if (!local.openrouterModelId?.trim()) {
-      throw new Error(
-        "OpenRouter: no model id set. Open Settings → Models and enter an OpenRouter model id (e.g. anthropic/claude-sonnet-5).",
-      );
+      throw new Error(t("ai.error.openrouterNoModelId"));
     }
     resolvedId = local.openrouterModelId.trim();
   }
@@ -437,10 +432,10 @@ export async function runAgentStream(opts: RunAgentOptions) {
           opts.onStep(
             label
               ? label((last.input ?? {}) as Record<string, unknown>)
-              : `Calling ${last.toolName}`,
+              : t("ai.calling", { tool: last.toolName }),
           );
         } else if (step.text) {
-          opts.onStep("Writing");
+          opts.onStep(t("ai.writing"));
         }
       }
       if (opts.onUsage && step.usage) {

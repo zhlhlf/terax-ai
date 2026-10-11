@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { en } from "@/lib/i18n/locales/en";
 import { commitWebUrl, hostLabel, parseRemoteWebUrl } from "./remoteWebUrl";
 
 describe("parseRemoteWebUrl", () => {
@@ -99,8 +100,9 @@ describe("hostLabel", () => {
     const bitbucket = parseRemoteWebUrl("https://bitbucket.org/team/app.git");
     if (!github || !gitlab || !bitbucket) throw new Error("expected parses");
 
-    expect(hostLabel(github)).toBe("View on GitHub");
-    expect(hostLabel(gitlab)).toBe("View on GitLab");
-    expect(hostLabel(bitbucket)).toBe("View on Bitbucket");
+    const t = (key: keyof typeof en) => en[key];
+    expect(hostLabel(github, t)).toBe("View on GitHub");
+    expect(hostLabel(gitlab, t)).toBe("View on GitLab");
+    expect(hostLabel(bitbucket, t)).toBe("View on Bitbucket");
   });
 });

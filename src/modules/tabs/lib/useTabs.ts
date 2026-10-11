@@ -1,3 +1,4 @@
+import { t as translate } from "@/lib/i18n";
 import { isMarkdownPath } from "@/lib/utils";
 import {
   type AgentInstanceCount,
@@ -291,7 +292,7 @@ function titleFromUrl(url: string): string {
     const u = new URL(url);
     return u.host || url;
   } catch {
-    return url || "preview";
+    return url || translate("tab.title.preview");
   }
 }
 
@@ -483,7 +484,7 @@ export function planGitDiffOpen(
 
 export function planCommitHistoryOpen(
   tabs: Tab[],
-  input: { repoRoot: string; branch?: string | null },
+  input: { repoRoot: string; branch?: string | null; title?: string },
   spaceId: string,
   allocId: () => number,
 ): { tabs: Tab[]; targetId: number } {
@@ -493,7 +494,7 @@ export function planCommitHistoryOpen(
       tab.spaceId === spaceId &&
       tab.repoRoot === input.repoRoot,
   );
-  const title = input.branch ? `History · ${input.branch}` : "Git History";
+  const title = input.title ?? (input.branch ? `History · ${input.branch}` : "Git History");
   if (existing) {
     if (existing.title === title) return { tabs, targetId: existing.id };
     return {
@@ -531,7 +532,7 @@ function coldTerminalTab(
     kind: "terminal",
     spaceId,
     cold: true,
-    title: cwd ? basename(cwd) : "shell",
+    title: cwd ? basename(cwd) : translate("tab.title.shell"),
     cwd,
     paneTree: { kind: "leaf", id: leafId, cwd },
     activeLeafId: leafId,
@@ -580,7 +581,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: DEFAULT_SPACE_ID,
         cold: true,
-        title: initial?.title ?? "shell",
+        title: initial?.title ?? translate("tab.title.shell"),
         cwd: initial?.cwd,
         paneTree: { kind: "leaf", id: leafId, cwd: initial?.cwd },
         activeLeafId: leafId,
@@ -737,7 +738,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         id: tabId,
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
-        title: "shell",
+        title: translate("tab.title.shell"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -756,7 +757,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         id: tabId,
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
-        title: "blocks",
+        title: translate("tab.title.blocks"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -818,7 +819,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         id: tabId,
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
-        title: "private",
+        title: translate("tab.title.private"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -1389,7 +1390,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           id: tabId,
           kind: "terminal",
           spaceId: activeSpaceIdRef.current,
-          title: "shell",
+          title: translate("tab.title.shell"),
           cwd,
           paneTree: { kind: "leaf", id: leafId, cwd },
           activeLeafId: leafId,

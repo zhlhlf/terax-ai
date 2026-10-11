@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { type TFn, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   ArrowDown01Icon,
@@ -17,6 +18,23 @@ function basename(p: string): string {
   return i >= 0 ? p.slice(i + 1) : p;
 }
 
+type EditKind = QueuedEdit["kind"];
+
+function kindLabel(kind: EditKind, t: TFn): string {
+  switch (kind) {
+    case "edit":
+      return t("ai.kind.edit");
+    case "write_file":
+      return t("ai.kind.writeFile");
+    case "multi_edit":
+      return t("ai.kind.multiEdit");
+    case "create_directory":
+      return t("ai.kind.createDirectory");
+    default:
+      return kind;
+  }
+}
+
 function diffStats(
   original: string,
   proposed: string,
@@ -33,6 +51,7 @@ function diffStats(
 }
 
 export function PlanDiffReview() {
+  const t = useT();
   const queue = usePlanStore((s) => s.queue);
   const removeOne = usePlanStore((s) => s.removeOne);
   const clear = usePlanStore((s) => s.clear);
@@ -59,10 +78,15 @@ export function PlanDiffReview() {
       <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
         <div className="flex flex-col">
           <span className="text-[13px] font-semibold tracking-tight">
-            Plan review
+            {t("ai.planReview.title")}
           </span>
           <span className="text-[10.5px] text-muted-foreground">
-            {queue.length} pending change{queue.length === 1 ? "" : "s"}
+            {t(
+              queue.length === 1
+                ? "ai.planReview.pending.one"
+                : "ai.planReview.pending.many",
+              { count: queue.length },
+            )}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -75,7 +99,7 @@ export function PlanDiffReview() {
             disabled={busy}
           >
             <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2} />
-            Discard all
+            {t("ai.planReview.discardAll")}
           </Button>
           <Button
             type="button"
@@ -85,7 +109,7 @@ export function PlanDiffReview() {
             disabled={busy}
           >
             <HugeiconsIcon icon={Tick02Icon} size={12} strokeWidth={2} />
-            Apply {queue.length}
+            {t("ai.planReview.apply", { count: queue.length })}
           </Button>
         </div>
       </div>
@@ -105,6 +129,7 @@ function PlanRow({
   item: QueuedEdit;
   onReject: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const isDir = item.kind === "create_directory";
   const isNew = item.isNewFile && !isDir;
@@ -129,7 +154,7 @@ function PlanRow({
             open && "rotate-180",
             isDir && "invisible",
           )}
-          aria-label="Toggle diff"
+          aria-label={t("ai.planReview.toggleDiff")}
         >
           <HugeiconsIcon icon={ArrowDown01Icon} size={11} strokeWidth={1.75} />
         </button>
@@ -146,7 +171,7 @@ function PlanRow({
             </span>
             {isNew ? (
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                new
+                {t("ai.planReview.new")}
               </span>
             ) : null}
           </div>
@@ -160,12 +185,12 @@ function PlanRow({
               </span>
               <span className="text-destructive">−{stats.removed}</span>
               <span className="text-muted-foreground">
-                {item.kind === "multi_edit" ? "multi-edit" : item.kind}
+                {kindLabel(item.kind, t)}
               </span>
             </div>
           ) : (
             <div className="mt-0.5 text-[10px] text-muted-foreground">
-              {item.description ?? "create directory"}
+              {item.description ?? t("ai.kind.createDirectory")}
             </div>
           )}
         </div>
@@ -175,7 +200,7 @@ function PlanRow({
           variant="ghost"
           className="size-5 shrink-0 opacity-0 transition-opacity group-hover/row:opacity-100"
           onClick={onReject}
-          aria-label="Reject"
+          aria-label={t("ai.planReview.reject")}
         >
           <HugeiconsIcon icon={Cancel01Icon} size={11} strokeWidth={1.75} />
         </Button>
@@ -199,6 +224,7 @@ function UnifiedDiffPreview({
   original: string;
   proposed: string;
 }) {
+  const t = useT();
   // Coarse line-level diff (LCS-lite via set membership). For real diffs
   // we'd reach for a library; this is good enough for at-a-glance review.
   const a = original.split("\n");
@@ -215,7 +241,7 @@ function UnifiedDiffPreview({
   if (lines.length === 0) {
     return (
       <div className="text-[11px] italic text-muted-foreground">
-        no line-level changes
+        {t("ai.planReview.noChanges")}
       </div>
     );
   }
@@ -247,7 +273,7 @@ function UnifiedDiffPreview({
         ))}
         {rest > 0 ? (
           <div className="px-2 py-1 text-[10px] italic text-muted-foreground">
-            … {rest} more changes
+            … {t("ai.planReview.more", { count: rest })}
           </div>
         ) : null}
       </div>

@@ -9,7 +9,7 @@ import { arch, platform } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
 import { SectionHeader } from "../components/SectionHeader";
 
-const REPO_URL = "https://github.com/crynta/terax-ai";
+const REPO_URL = "https://github.com/zhlhlf/terax-ai";
 const WEBSITE = "https://terax.app";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -98,7 +98,7 @@ export function AboutSection() {
         <dt className="text-muted-foreground">
           {t("settings.about.bundleId")}
         </dt>
-        <dd className="font-mono text-[11.5px]">app.crynta.terax</dd>
+        <dd className="font-mono text-[11.5px]">app.zhlhlf.terax</dd>
 
         <dt className="text-muted-foreground">{t("settings.about.license")}</dt>
         <dd>Apache 2.0</dd>
@@ -113,7 +113,7 @@ export function AboutSection() {
             className="inline-flex items-center gap-1.5 rounded-md text-[12px] underline-offset-2 hover:text-foreground hover:underline"
           >
             <HugeiconsIcon icon={GithubIcon} size={12} strokeWidth={1.75} />
-            crynta/terax-ai
+            zhlhlf/terax-ai
           </button>
         </dd>
         <dt className="text-muted-foreground">{t("settings.about.website")}</dt>

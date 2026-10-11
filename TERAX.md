@@ -6,7 +6,7 @@ Terax loads `TERAX.md` from the workspace root as agent memory (similar to AGENT
 
 **Terax**: open-source AI-native terminal emulator. Tauri 2 + Rust (`portable-pty`) backend, React 19 + TypeScript + libghostty-vt WASM client (WebGPU, Terax WebGL fallback), BYOK AI via Vercel AI SDK v6.
 
-- Bundle id: `app.crynta.terax`
+- Bundle id: `app.zhlhlf.terax`
 - Package manager: **pnpm**
 - Platforms: macOS, Linux, Windows
 - Frontend checks: `pnpm lint`, `pnpm check-types`, `pnpm test`
@@ -270,7 +270,7 @@ BYOK. Cloud providers via `@ai-sdk/*`: **OpenAI, Anthropic, Google, xAI, Cerebra
   - **macOS**: `minimumSystemVersion: 13.0`.
   - **Linux**: deb depends `libwebkit2gtk-4.1-0`, `libgtk-3-0`; rpm `webkit2gtk4.1`, `gtk3`; AppImage bundles its media framework.
   - **Windows**: NSIS installer in `currentUser` mode (no admin required), WebView2 via `downloadBootstrapper`. Installing a missing WebView2 runtime requires internet access; there is no bundled offline runtime. Packaged and offline-install validation remains in the release-readiness gates.
-- Auto-updater configured with a public minisign key; release artifacts at `https://github.com/crynta/terax-ai/releases/latest/download/latest.json`.
+- Auto-updater configured with a public minisign key; release artifacts at `https://github.com/zhlhlf/terax-ai/releases/latest/download/latest.json`.
 - `bundle.resources` includes the upstream Ghostty, Restty, ghostty-web, and xterm.js license notices under `licenses/terminal/`. Repository documentation and test-only reference WASM cores are not packaged; the frontend includes only the adapted SIMD and scalar cores.
 
 ### Known gotchas

@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WindowControls } from "@/components/WindowControls";
+import { type TranslationKey, useT } from "@/lib/i18n";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
 import type { SettingsTab } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
@@ -25,44 +26,49 @@ import { ThemesSection } from "./sections/ThemesSection";
 
 const TABS: {
   id: SettingsTab;
-  label: string;
+  label: TranslationKey;
   icon: typeof Settings01Icon;
   component: () => JSX.Element;
 }[] = [
   {
     id: "general",
-    label: "General",
+    label: "settings.tab.general",
     icon: Settings01Icon,
     component: GeneralSection,
   },
   {
     id: "editor",
-    label: "Editor",
+    label: "settings.tab.editor",
     icon: SourceCodeIcon,
     component: EditorSection,
   },
   {
     id: "themes",
-    label: "Themes",
+    label: "settings.tab.themes",
     icon: PaintBoardIcon,
     component: ThemesSection,
   },
   {
     id: "shortcuts",
-    label: "Shortcuts",
+    label: "settings.tab.shortcuts",
     icon: KeyboardIcon,
     component: ShortcutsSection,
   },
-  { id: "models", label: "Models", icon: AiScanIcon, component: ModelsSection },
+  {
+    id: "models",
+    label: "settings.tab.models",
+    icon: AiScanIcon,
+    component: ModelsSection,
+  },
   {
     id: "agents",
-    label: "Agents",
+    label: "settings.tab.agents",
     icon: UserMultiple02Icon,
     component: AgentsSection,
   },
   {
     id: "about",
-    label: "About",
+    label: "settings.tab.about",
     icon: InformationCircleIcon,
     component: AboutSection,
   },
@@ -89,9 +95,10 @@ function readInitialTab(): SettingsTab {
 }
 
 export function SettingsApp() {
+  const t = useT();
   const [active, setActive] = useState<SettingsTab>(readInitialTab);
   const init = usePreferencesStore((s) => s.init);
-  const ActiveSection = TABS.find((t) => t.id === active)?.component;
+  const ActiveSection = TABS.find((tab) => tab.id === active)?.component;
 
   useEffect(() => {
     void init();
@@ -132,14 +139,14 @@ export function SettingsApp() {
           data-tauri-drag-region
         >
           <TabsList className="mx-auto h-7 bg-muted/40 px-2">
-            {TABS.map((t) => (
+            {TABS.map((tab) => (
               <TabsTrigger
-                key={t.id}
-                value={t.id}
+                key={tab.id}
+                value={tab.id}
                 className="h-6 gap-1.5 px-2.5 text-[11.5px]"
               >
-                <HugeiconsIcon icon={t.icon} size={12} strokeWidth={1.75} />
-                <span>{t.label}</span>
+                <HugeiconsIcon icon={tab.icon} size={12} strokeWidth={1.75} />
+                <span>{t(tab.label)}</span>
               </TabsTrigger>
             ))}
           </TabsList>

@@ -16,11 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { type TFn, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import {
-  getBindingTokens,
-  SHORTCUTS,
-} from "@/modules/shortcuts/shortcuts";
+import { getBindingTokens, SHORTCUTS } from "@/modules/shortcuts/shortcuts";
 import {
   type CustomEndpoint,
   compatModelIdForEndpoint,
@@ -104,51 +102,55 @@ type LocalMeta = {
   modelHint: React.ReactNode;
 };
 
-const LOCAL_META: Partial<Record<ProviderId, LocalMeta>> = {
-  lmstudio: {
-    urlPlaceholder: "http://localhost:1234/v1",
-    modelPlaceholder: "qwen2.5-coder-7b-instruct",
-    description:
-      "Run GGUF models via LM Studio's HTTP server (Developer tab → enable).",
-    modelHint: (
-      <>
-        The model id loaded in LM Studio — see the server's{" "}
-        <span className="font-mono">/v1/models</span> page.
-      </>
-    ),
-  },
-  mlx: {
-    urlPlaceholder: "http://127.0.0.1:8080/v1",
-    modelPlaceholder: "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
-    description:
-      "Apple-silicon inference via mlx_lm.server (pip install mlx-lm).",
-    modelHint: <>The Hugging Face repo path you launched mlx_lm.server with.</>,
-  },
-  ollama: {
-    urlPlaceholder: "http://localhost:11434/v1",
-    modelPlaceholder: "qwen2.5-coder:7b",
-    description: "Local models via Ollama's built-in OpenAI-compatible API.",
-    modelHint: <>The model name from `ollama list` / `ollama pull`.</>,
-  },
-  "openai-compatible": {
-    urlPlaceholder: "https://api.example.com/v1",
-    modelPlaceholder: "gpt-4o, qwen3-max, glm-4.6, …",
-    description: "Any OpenAI-compatible endpoint — vLLM, Z.AI, Fireworks, etc.",
-    modelHint: null,
-  },
-  openrouter: {
-    urlPlaceholder: "",
-    modelPlaceholder: "anthropic/claude-sonnet-5, openai/gpt-5.6, …",
-    description: "Any model on OpenRouter — type its full provider/model id.",
-    modelHint: (
-      <>
-        Browse ids at <span className="font-mono">openrouter.ai/models</span>.
-      </>
-    ),
-  },
-};
+/** Built lazily so the descriptions/hints go through `t()` at render time. */
+function localMeta(t: TFn): Partial<Record<ProviderId, LocalMeta>> {
+  return {
+    lmstudio: {
+      urlPlaceholder: "http://localhost:1234/v1",
+      modelPlaceholder: "qwen2.5-coder-7b-instruct",
+      description: t("settings.models.meta.lmstudio.description"),
+      modelHint: (
+        <>
+          {t("settings.models.meta.lmstudio.hintPre")}{" "}
+          <span className="font-mono">/v1/models</span>{" "}
+          {t("settings.models.meta.lmstudio.hintPost")}
+        </>
+      ),
+    },
+    mlx: {
+      urlPlaceholder: "http://127.0.0.1:8080/v1",
+      modelPlaceholder: "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+      description: t("settings.models.meta.mlx.description"),
+      modelHint: <>{t("settings.models.meta.mlx.hint")}</>,
+    },
+    ollama: {
+      urlPlaceholder: "http://localhost:11434/v1",
+      modelPlaceholder: "qwen2.5-coder:7b",
+      description: t("settings.models.meta.ollama.description"),
+      modelHint: <>{t("settings.models.meta.ollama.hint")}</>,
+    },
+    "openai-compatible": {
+      urlPlaceholder: "https://api.example.com/v1",
+      modelPlaceholder: "gpt-4o, qwen3-max, glm-4.6, …",
+      description: t("settings.models.meta.compat.description"),
+      modelHint: null,
+    },
+    openrouter: {
+      urlPlaceholder: "",
+      modelPlaceholder: "anthropic/claude-sonnet-5, openai/gpt-5.6, …",
+      description: t("settings.models.meta.openrouter.description"),
+      modelHint: (
+        <>
+          {t("settings.models.meta.openrouter.hintPre")}{" "}
+          <span className="font-mono">openrouter.ai/models</span>.
+        </>
+      ),
+    },
+  };
+}
 
 export function ModelsSection() {
+  const t = useT();
   const [keys, setKeys] = useState<KeysMap | null>(null);
   const [epKeys, setEpKeys] = useState<CustomEndpointKeys>({});
   const [adding, setAdding] = useState<Set<ProviderId>>(new Set());
@@ -356,8 +358,8 @@ export function ModelsSection() {
   return (
     <div className="flex flex-col gap-7">
       <SectionHeader
-        title="Models"
-        description="Connect the providers you use. Keys live in your OS keychain and are used only by Terax."
+        title={t("settings.models.title")}
+        description={t("settings.models.description")}
       />
 
       <DefaultsBlock
@@ -371,7 +373,7 @@ export function ModelsSection() {
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <Label>Providers</Label>
+          <Label>{t("settings.models.providers")}</Label>
           <AddProviderMenu
             providers={addableProviders}
             onAdd={addProvider}
@@ -382,34 +384,23 @@ export function ModelsSection() {
         {visibleProviders.length === 0 && customEndpoints.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 bg-card/40 px-4 py-8 text-center">
             <p className="text-[12px] text-muted-foreground">
-              No providers connected yet.
+              {t("settings.models.empty.title")}
             </p>
             <p className="mt-0.5 text-[10.5px] text-muted-foreground/70">
-              Click "Add provider" to connect a cloud or local model source.
+              {t("settings.models.empty.hint")}
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {visibleProviders.map((p) =>
-              p.id === "openrouter" ? (
+              p.id === "openrouter" || isLocalProvider(p.id) ? (
                 <LocalProviderCard
                   key={p.id}
                   provider={p}
                   configured={configuredIds.has(p.id)}
                   config={localConfig(p.id)!}
-                  meta={LOCAL_META[p.id]!}
+                  meta={localMeta(t)[p.id]!}
                   compatKey={keys[p.id]}
-                  onSaveKey={(v) => onSaveKey(p.id, v)}
-                  onClearKey={() => onClearKey(p.id)}
-                  onRemove={() => removeProvider(p.id)}
-                />
-              ) : isLocalProvider(p.id) ? (
-                <LocalProviderCard
-                  key={p.id}
-                  provider={p}
-                  configured={configuredIds.has(p.id)}
-                  config={localConfig(p.id)!}
-                  meta={LOCAL_META[p.id]!}
                   onSaveKey={(v) => onSaveKey(p.id, v)}
                   onClearKey={() => onClearKey(p.id)}
                   onRemove={() => removeProvider(p.id)}
@@ -462,6 +453,7 @@ function AddProviderMenu({
   onAdd: (id: ProviderId) => void;
   onAddCompat: () => void;
 }) {
+  const t = useT();
   const cloud = providers.filter((p) => !isLocalProvider(p.id));
   const local = providers.filter(
     (p) => isLocalProvider(p.id) && p.id !== "openai-compatible",
@@ -476,14 +468,14 @@ function AddProviderMenu({
           className="h-7 gap-1.5 px-2.5 text-[11px]"
         >
           <HugeiconsIcon icon={Add01Icon} size={12} strokeWidth={2} />
-          Add provider
+          {t("settings.models.addProvider")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-55 p-1">
         {cloud.length > 0 ? (
           <>
             <DropdownMenuLabel className="px-2 text-[10px] tracking-wide text-muted-foreground uppercase">
-              Cloud
+              {t("settings.models.cloud")}
             </DropdownMenuLabel>
             {cloud.map((p) => (
               <ProviderMenuItem key={p.id} provider={p} onAdd={onAdd} />
@@ -491,7 +483,7 @@ function AddProviderMenu({
           </>
         ) : null}
         <DropdownMenuLabel className="px-2 text-[10px] tracking-wide text-muted-foreground uppercase">
-          Local & custom
+          {t("settings.models.localAndCustom")}
         </DropdownMenuLabel>
         {local.map((p) => (
           <ProviderMenuItem key={p.id} provider={p} onAdd={onAdd} />
@@ -501,7 +493,7 @@ function AddProviderMenu({
           className="flex items-center gap-2 text-[12px]"
         >
           <ProviderIcon provider="openai-compatible" size={13} />
-          <span>OpenAI Compatible</span>
+          <span>{t("settings.models.openaiCompatible")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -537,11 +529,12 @@ function DefaultsBlock({
   keys: KeysMap;
   customEndpoints: readonly CustomEndpoint[];
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3">
-      <Label>Defaults</Label>
+      <Label>{t("settings.models.defaults")}</Label>
       <div className="flex flex-col gap-2.5 rounded-lg border border-border/60 bg-card/60 px-3 py-2.5">
-        <FieldRow label="Chat model">
+        <FieldRow label={t("settings.models.chatModel")}>
           <DefaultModelPicker
             defaultModel={defaultModel}
             configuredIds={configuredIds}
@@ -640,6 +633,7 @@ function AutocompleteRow({
   configuredIds: Set<ProviderId>;
   customEndpoints: readonly CustomEndpoint[];
 }) {
+  const t = useT();
   const enabled = usePreferencesStore((s) => s.autocompleteEnabled);
   const trigger = usePreferencesStore((s) => s.autocompleteTrigger);
   const provider = usePreferencesStore((s) => s.autocompleteProvider);
@@ -714,7 +708,7 @@ function AutocompleteRow({
 
   return (
     <>
-      <FieldRow label="Autocomplete">
+      <FieldRow label={t("settings.models.autocomplete")}>
         <div className="flex flex-1 items-center gap-2">
           <Switch
             checked={enabled}
@@ -759,7 +753,7 @@ function AutocompleteRow({
                       <span>{p.label}</span>
                       {!pConfigured ? (
                         <span className="ml-auto text-[9.5px] normal-case tracking-normal text-muted-foreground/70">
-                          not connected
+                          {t("settings.models.notConnected")}
                         </span>
                       ) : null}
                     </div>
@@ -789,7 +783,7 @@ function AutocompleteRow({
         </div>
       </FieldRow>
       {enabled ? (
-        <FieldRow label="Trigger">
+        <FieldRow label={t("settings.models.trigger")}>
           <Select
             value={trigger}
             onValueChange={(v) =>
@@ -800,9 +794,14 @@ function AutocompleteRow({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="auto">Automatic (as you type)</SelectItem>
+              <SelectItem value="auto">
+                {t("settings.models.triggerAutomatic")}
+              </SelectItem>
               <SelectItem value="manual">
-                Manual ({aiCompleteShortcut || "shortcut"})
+                {t("settings.models.triggerManual", {
+                  shortcut:
+                    aiCompleteShortcut || t("settings.models.shortcutFallback"),
+                })}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -810,7 +809,9 @@ function AutocompleteRow({
       ) : null}
       {enabled && !hasKey ? (
         <p className="pl-19 text-[10.5px] text-muted-foreground">
-          {getProvider(provider).label} isn't connected — add it below.
+          {t("settings.models.providerNotConnected", {
+            name: getProvider(provider).label,
+          })}
         </p>
       ) : null}
     </>
@@ -836,6 +837,7 @@ function LocalProviderCard({
   onClearKey: () => Promise<void>;
   onRemove: () => void;
 }) {
+  const t = useT();
   const {
     baseURL,
     modelId,
@@ -885,7 +887,7 @@ function LocalProviderCard({
               size={9}
               strokeWidth={2}
             />
-            Connected
+            {t("settings.models.connected")}
           </Badge>
         ) : null}
         <button
@@ -893,7 +895,7 @@ function LocalProviderCard({
           onClick={() => void openUrl(provider.consoleUrl)}
           className="ml-auto inline-flex items-center gap-0.5 text-[10.5px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          Docs
+          {t("settings.models.docs")}
           <HugeiconsIcon
             icon={ArrowUpRight01Icon}
             size={11}
@@ -904,7 +906,7 @@ function LocalProviderCard({
           size="icon"
           variant="ghost"
           onClick={onRemove}
-          title="Remove provider"
+          title={t("settings.models.removeProvider")}
           className="size-7 text-muted-foreground hover:text-destructive"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={1.75} />
@@ -917,7 +919,7 @@ function LocalProviderCard({
 
       <div className="mt-0.5 flex flex-col gap-2.5">
         {noBaseURL ? null : (
-          <FieldRow label="Base URL">
+          <FieldRow label={t("settings.models.baseUrl")}>
             <div className="flex flex-1 gap-1.5">
               <Input
                 value={urlDraft}
@@ -937,13 +939,13 @@ function LocalProviderCard({
                 disabled={!urlDraft.trim()}
                 className="h-8 px-3 text-[11px]"
               >
-                Test
+                {t("settings.models.test")}
               </Button>
             </div>
           </FieldRow>
         )}
 
-        <FieldRow label="Model ID">
+        <FieldRow label={t("settings.models.modelId")}>
           <Input
             value={modelDraft}
             onChange={(e) => setModelDraft(e.target.value)}
@@ -958,7 +960,7 @@ function LocalProviderCard({
         </FieldRow>
 
         {setContextLimit ? (
-          <FieldRow label="Context">
+          <FieldRow label={t("settings.models.context")}>
             <div className="flex flex-1 items-center gap-1.5">
               <Input
                 value={contextDraft}
@@ -973,14 +975,14 @@ function LocalProviderCard({
                 className="h-8 w-28 font-mono text-[11.5px]"
               />
               <span className="text-[10.5px] text-muted-foreground">
-                tokens
+                {t("settings.models.tokens")}
               </span>
             </div>
           </FieldRow>
         ) : null}
 
         {supportsKey ? (
-          <FieldRow label="API key">
+          <FieldRow label={t("settings.models.apiKey")}>
             {compatKey ? (
               <div className="flex flex-1 items-center gap-1.5">
                 <code className="flex-1 truncate rounded bg-muted/40 px-2 py-1 font-mono text-[11px] text-muted-foreground">
@@ -990,7 +992,7 @@ function LocalProviderCard({
                   size="icon"
                   variant="ghost"
                   onClick={() => void onClearKey()}
-                  title="Remove key"
+                  title={t("settings.models.removeKey")}
                   className="size-7 text-muted-foreground hover:text-destructive"
                 >
                   <HugeiconsIcon
@@ -1006,7 +1008,7 @@ function LocalProviderCard({
                   type="password"
                   value={keyDraft}
                   onChange={(e) => setKeyDraft(e.target.value)}
-                  placeholder="Optional — leave empty for unauthenticated endpoints"
+                  placeholder={t("settings.models.apiKey.placeholder")}
                   spellCheck={false}
                   className="h-8 flex-1 font-mono text-[11.5px]"
                 />
@@ -1021,7 +1023,7 @@ function LocalProviderCard({
                   disabled={!keyDraft.trim()}
                   className="h-8 px-3 text-[11px]"
                 >
-                  Save
+                  {t("settings.models.save")}
                 </Button>
               </div>
             )}
@@ -1055,6 +1057,7 @@ function CustomEndpointCard({
   onUpdate: (patch: Partial<CustomEndpoint>) => Promise<void>;
   onRemove: () => void;
 }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(!endpoint.baseURL.trim());
   const [nameDraft, setNameDraft] = useState(endpoint.name);
   const [urlDraft, setUrlDraft] = useState(endpoint.baseURL);
@@ -1105,7 +1108,7 @@ function CustomEndpointCard({
         />
         <ProviderIcon provider="openai-compatible" size={15} />
         <span className="text-[12.5px] font-medium truncate">
-          {endpoint.name || "OpenAI Compatible"}
+          {endpoint.name || t("settings.models.openaiCompatible")}
         </span>
         {endpoint.modelId.trim() && (
           <span className="text-[10.5px] text-muted-foreground truncate font-mono">
@@ -1122,7 +1125,7 @@ function CustomEndpointCard({
               size={9}
               strokeWidth={2}
             />
-            Connected
+            {t("settings.models.connected")}
           </Badge>
         ) : null}
         <Button
@@ -1132,7 +1135,7 @@ function CustomEndpointCard({
             e.stopPropagation();
             onRemove();
           }}
-          title="Remove endpoint"
+          title={t("settings.models.removeEndpoint")}
           className="ml-auto size-7 text-muted-foreground hover:text-destructive"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={1.75} />
@@ -1141,7 +1144,7 @@ function CustomEndpointCard({
 
       {expanded && (
         <div className="flex flex-col gap-2.5 border-t border-border/40 px-3 py-2.5">
-          <FieldRow label="Name">
+          <FieldRow label={t("settings.models.name")}>
             <Input
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
@@ -1149,13 +1152,13 @@ function CustomEndpointCard({
                 const v = nameDraft.trim();
                 if (v !== endpoint.name) void onUpdate({ name: v });
               }}
-              placeholder="My endpoint"
+              placeholder={t("settings.models.name.placeholder")}
               spellCheck={false}
               className="h-8 flex-1 text-[11.5px]"
             />
           </FieldRow>
 
-          <FieldRow label="Base URL">
+          <FieldRow label={t("settings.models.baseUrl")}>
             <div className="flex flex-1 gap-1.5">
               <Input
                 value={urlDraft}
@@ -1164,7 +1167,7 @@ function CustomEndpointCard({
                   const v = urlDraft.trim();
                   if (v !== endpoint.baseURL) void onUpdate({ baseURL: v });
                 }}
-                placeholder="https://api.example.com/v1"
+                placeholder={t("settings.models.baseUrl.placeholder")}
                 spellCheck={false}
                 className="h-8 flex-1 font-mono text-[11.5px]"
               />
@@ -1175,12 +1178,12 @@ function CustomEndpointCard({
                 disabled={!urlDraft.trim()}
                 className="h-8 px-3 text-[11px]"
               >
-                Test
+                {t("settings.models.test")}
               </Button>
             </div>
           </FieldRow>
 
-          <FieldRow label="Model ID">
+          <FieldRow label={t("settings.models.modelId")}>
             <Input
               value={modelDraft}
               onChange={(e) => setModelDraft(e.target.value)}
@@ -1188,13 +1191,13 @@ function CustomEndpointCard({
                 const v = modelDraft.trim();
                 if (v !== endpoint.modelId) void onUpdate({ modelId: v });
               }}
-              placeholder="gpt-4o, qwen3-max, glm-4.6, …"
+              placeholder={t("settings.models.modelId.placeholder")}
               spellCheck={false}
               className="h-8 font-mono text-[11.5px]"
             />
           </FieldRow>
 
-          <FieldRow label="Context">
+          <FieldRow label={t("settings.models.context")}>
             <div className="flex flex-1 items-center gap-1.5">
               <Input
                 value={contextDraft}
@@ -1210,12 +1213,12 @@ function CustomEndpointCard({
                 className="h-8 w-28 font-mono text-[11.5px]"
               />
               <span className="text-[10.5px] text-muted-foreground">
-                tokens
+                {t("settings.models.tokens")}
               </span>
             </div>
           </FieldRow>
 
-          <FieldRow label="API key">
+          <FieldRow label={t("settings.models.apiKey")}>
             {endpointKey ? (
               <div className="flex flex-1 items-center gap-1.5">
                 <code className="flex-1 truncate rounded bg-muted/40 px-2 py-1 font-mono text-[11px] text-muted-foreground">
@@ -1225,7 +1228,7 @@ function CustomEndpointCard({
                   size="icon"
                   variant="ghost"
                   onClick={() => void onClearKey()}
-                  title="Remove key"
+                  title={t("settings.models.removeKey")}
                   className="size-7 text-muted-foreground hover:text-destructive"
                 >
                   <HugeiconsIcon
@@ -1241,7 +1244,7 @@ function CustomEndpointCard({
                   type="password"
                   value={keyDraft}
                   onChange={(e) => setKeyDraft(e.target.value)}
-                  placeholder="Optional — leave empty for unauthenticated endpoints"
+                  placeholder={t("settings.models.apiKey.placeholder")}
                   spellCheck={false}
                   className="h-8 flex-1 font-mono text-[11.5px]"
                 />
@@ -1256,7 +1259,7 @@ function CustomEndpointCard({
                   disabled={!keyDraft.trim()}
                   className="h-8 px-3 text-[11px]"
                 >
-                  Save
+                  {t("settings.models.save")}
                 </Button>
               </div>
             )}
@@ -1291,28 +1294,39 @@ function StatusLine({
 }: {
   status: "idle" | "testing" | "ok" | "fail";
 }) {
+  const t = useT();
   if (status === "idle") return null;
   if (status === "testing") {
     return (
-      <span className="text-[10.5px] text-muted-foreground">Testing…</span>
+      <span className="text-[10.5px] text-muted-foreground">
+        {t("settings.models.testing")}
+      </span>
     );
   }
   if (status === "ok") {
     return (
       <span className="flex items-center gap-1 text-[10.5px] text-muted-foreground">
         <HugeiconsIcon icon={CheckmarkCircle02Icon} size={11} strokeWidth={2} />
-        Reachable — server responded.
+        {t("settings.models.reachable")}
       </span>
     );
   }
   return (
     <span className="text-[10.5px] text-destructive/80">
-      Could not reach the server.
+      {t("settings.models.unreachable")}
     </span>
   );
 }
 
+/** STT provider names: the two cloud ones are brand names, only the local
+ *  variant carries a translatable word. */
+function sttLabel(t: TFn, provider: SttProvider): string {
+  if (provider === "whispercpp") return t("settings.models.stt.whispercpp");
+  return STT_PROVIDER_LABELS[provider];
+}
+
 function VoiceBlock() {
+  const t = useT();
   const sttProvider = usePreferencesStore((s) => s.sttProvider);
   const groqSttModel = usePreferencesStore((s) => s.groqSttModel);
   const whispercppBaseURL = usePreferencesStore((s) => s.whispercppBaseURL);
@@ -1326,17 +1340,19 @@ function VoiceBlock() {
     <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 px-3 py-2.5">
       <div className="flex items-center gap-2">
         <HugeiconsIcon icon={Mic01Icon} size={15} strokeWidth={1.5} />
-        <span className="text-[12.5px] font-medium">Voice input</span>
+        <span className="text-[12.5px] font-medium">
+          {t("settings.models.voiceInput")}
+        </span>
       </div>
 
-      <FieldRow label="Provider">
+      <FieldRow label={t("settings.models.stt.provider")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
               className="h-8 flex-1 justify-between gap-2 px-2.5 text-[11.5px]"
             >
-              <span>{STT_PROVIDER_LABELS[sttProvider]}</span>
+              <span>{sttLabel(t, sttProvider)}</span>
               <HugeiconsIcon
                 icon={ArrowDown01Icon}
                 size={11}
@@ -1355,7 +1371,7 @@ function VoiceBlock() {
                   p === sttProvider && "bg-accent/50",
                 )}
               >
-                <span>{STT_PROVIDER_LABELS[p]}</span>
+                <span>{sttLabel(t, p)}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -1364,16 +1380,15 @@ function VoiceBlock() {
 
       <p className="text-[10.5px] leading-relaxed text-muted-foreground">
         {sttProvider === "openai" &&
-          "Uses your official OpenAI API key and the Whisper model for transcription."}
-        {sttProvider === "groq" &&
-          "Uses your official Groq API key and Groq's Whisper endpoint for transcription."}
+          t("settings.models.voice.descriptionOpenai")}
+        {sttProvider === "groq" && t("settings.models.voice.descriptionGroq")}
         {sttProvider === "whispercpp" &&
-          "Connects to a local Whisper.cpp server for fully offline transcription."}
+          t("settings.models.voice.descriptionWhispercpp")}
       </p>
 
       {sttProvider === "groq" && (
         <div className="flex flex-col gap-2.5">
-          <FieldRow label="Model">
+          <FieldRow label={t("settings.models.stt.model")}>
             <Input
               value={groqModelDraft}
               onChange={(e) => setGroqModelDraft(e.target.value)}
@@ -1381,7 +1396,7 @@ function VoiceBlock() {
                 const v = groqModelDraft.trim();
                 if (v !== groqSttModel) void setGroqSttModel(v);
               }}
-              placeholder="whisper-large-v3-turbo"
+              placeholder={t("settings.models.stt.model.placeholder")}
               spellCheck={false}
               className="h-8 font-mono text-[11.5px]"
             />
@@ -1391,7 +1406,7 @@ function VoiceBlock() {
 
       {sttProvider === "whispercpp" && (
         <div className="flex flex-col gap-2.5">
-          <FieldRow label="Base URL">
+          <FieldRow label={t("settings.models.stt.baseUrl")}>
             <Input
               value={urlDraft}
               onChange={(e) => setUrlDraft(e.target.value)}

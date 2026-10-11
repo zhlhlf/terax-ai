@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
@@ -37,10 +38,7 @@ import { deleteThemeFile, emitThemeEdit } from "@/modules/theme/themeFiles";
 import { listBuiltinThemes } from "@/modules/theme/themes";
 import { DEFAULT_THEME_ID } from "@/modules/theme/types";
 import { validateTheme } from "@/modules/theme/validateTheme";
-import {
-  type Backdrop,
-  getBackdropKind,
-} from "@/modules/theme/vibrancy";
+import { type Backdrop, getBackdropKind } from "@/modules/theme/vibrancy";
 import { Edit02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -49,6 +47,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { SettingRow } from "../components/SettingRow";
 
 export function ThemesSection() {
+  const t = useT();
   const { themeId, setThemeId, resolvedMode, customThemes } = useTheme();
   const builtinThemes = listBuiltinThemes();
   const themes = useMemo(
@@ -109,7 +108,7 @@ export function ThemesSection() {
         setThemeId(result.theme.id);
       } catch (e) {
         setImportError(
-          `${file.name}: ${e instanceof Error ? e.message : "failed to read"}`,
+          `${file.name}: ${e instanceof Error ? e.message : t("settings.themes.error.readFailed")}`,
         );
         return;
       }
@@ -131,7 +130,7 @@ export function ThemesSection() {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (!file.type.startsWith("image/")) {
-      setBgError(`${file.name}: not an image`);
+      setBgError(t("settings.themes.error.notImage", { file: file.name }));
       return;
     }
     try {
@@ -141,7 +140,11 @@ export function ThemesSection() {
       await setBackgroundKind("image");
       if (prev && prev !== id) await deleteBgImage(prev).catch(() => undefined);
     } catch (e) {
-      setBgError(e instanceof Error ? e.message : "failed to import image");
+      setBgError(
+        e instanceof Error
+          ? e.message
+          : t("settings.themes.error.importFailed"),
+      );
     }
   };
 
@@ -156,17 +159,21 @@ export function ThemesSection() {
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader
-        title="Themes"
-        description="Theme, background image, and customization."
+        title={t("settings.themes.title")}
+        description={t("settings.themes.description")}
       />
 
       {backdrop === "none" ? null : (
         <SettingRow
-          title={backdrop === "mica" ? "Mica background" : "Window vibrancy"}
+          title={
+            backdrop === "mica"
+              ? t("settings.themes.mica.title")
+              : t("settings.themes.vibrancy.title")
+          }
           description={
             backdrop === "mica"
-              ? "Blend the header, status bar and gutters into the desktop wallpaper. Windows 11 only."
-              : "Frost the header, status bar and gutters over what is behind the window. Panes stay solid."
+              ? t("settings.themes.mica.description")
+              : t("settings.themes.vibrancy.description")
           }
         >
           <Switch
@@ -189,7 +196,7 @@ export function ThemesSection() {
         }}
       >
         <div className="flex items-center justify-between">
-          <Label>Theme</Label>
+          <Label>{t("settings.themes.theme")}</Label>
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -198,7 +205,7 @@ export function ThemesSection() {
               onClick={onCreateTheme}
             >
               <HugeiconsIcon icon={PlusSignIcon} size={11} strokeWidth={2} />
-              Create
+              {t("settings.themes.create")}
             </Button>
             <Button
               variant="outline"
@@ -206,7 +213,7 @@ export function ThemesSection() {
               className="h-7 px-2 text-[11px]"
               onClick={onPickThemeFile}
             >
-              Import .terax-theme
+              {t("settings.themes.import")}
             </Button>
           </div>
           <input
@@ -226,21 +233,23 @@ export function ThemesSection() {
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-2">
-          {themes.map((t) => {
+          {themes.map((theme) => {
             const v =
-              t.variants[resolvedMode] ?? t.variants.dark ?? t.variants.light;
+              theme.variants[resolvedMode] ??
+              theme.variants.dark ??
+              theme.variants.light;
             const c = v?.colors;
             const swatchBg = c?.background ?? "var(--background)";
             const swatchFg = c?.foreground ?? "var(--foreground)";
             const swatchAccent = c?.primary ?? c?.accent ?? "var(--accent)";
             const swatchMuted = c?.muted ?? "var(--muted)";
-            const selected = themeId === t.id;
-            const isCustom = customIds.has(t.id);
+            const selected = themeId === theme.id;
+            const isCustom = customIds.has(theme.id);
             return (
               <button
-                key={t.id}
+                key={theme.id}
                 type="button"
-                onClick={() => setThemeId(t.id)}
+                onClick={() => setThemeId(theme.id)}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg border p-2.5 text-left transition-all",
                   selected
@@ -267,11 +276,11 @@ export function ThemesSection() {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-[12.5px] font-medium">
-                    {t.name}
+                    {theme.name}
                   </span>
-                  {t.description ? (
+                  {theme.description ? (
                     <span className="truncate text-[11px] text-muted-foreground">
-                      {t.description}
+                      {theme.description}
                     </span>
                   ) : null}
                 </div>
@@ -279,11 +288,13 @@ export function ThemesSection() {
                   <span className="ml-1 flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
                     <span
                       role="button"
-                      aria-label={`Edit ${t.name}`}
+                      aria-label={t("settings.themes.editTheme", {
+                        name: theme.name,
+                      })}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEditTheme(t.id);
+                        onEditTheme(theme.id);
                       }}
                     >
                       <HugeiconsIcon
@@ -294,11 +305,13 @@ export function ThemesSection() {
                     </span>
                     <span
                       role="button"
-                      aria-label={`Remove ${t.name}`}
+                      aria-label={t("settings.themes.removeTheme", {
+                        name: theme.name,
+                      })}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation();
-                        void onRemoveCustomTheme(t.id);
+                        void onRemoveCustomTheme(theme.id);
                       }}
                     >
                       ×
@@ -314,9 +327,9 @@ export function ThemesSection() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-col">
-            <Label>Editor theme</Label>
+            <Label>{t("settings.themes.editorTheme")}</Label>
             <span className="text-[11px] text-muted-foreground">
-              Syntax colors for the code editor. Auto follows the app theme.
+              {t("settings.themes.editorTheme.description")}
             </span>
           </div>
           <Select
@@ -328,7 +341,7 @@ export function ThemesSection() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={EDITOR_THEME_AUTO} className="text-[12px]">
-                Auto (match app theme)
+                {t("settings.themes.editorTheme.auto")}
               </SelectItem>
               <SelectSeparator />
               {[...EDITOR_THEMES]
@@ -365,7 +378,7 @@ export function ThemesSection() {
         }}
       >
         <div className="flex items-center justify-between">
-          <Label>Background</Label>
+          <Label>{t("settings.themes.background")}</Label>
           <div className="flex items-center gap-2">
             {backgroundKind === "image" && backgroundImageId ? (
               <Button
@@ -374,7 +387,7 @@ export function ThemesSection() {
                 className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
                 onClick={() => void onRemoveBackground()}
               >
-                Remove
+                {t("settings.common.remove")}
               </Button>
             ) : null}
             <Button
@@ -383,7 +396,9 @@ export function ThemesSection() {
               className="h-7 px-2 text-[11px]"
               onClick={onPickBgFile}
             >
-              {backgroundKind === "image" ? "Replace image" : "Choose image"}
+              {backgroundKind === "image"
+                ? t("settings.themes.replaceImage")
+                : t("settings.themes.chooseImage")}
             </Button>
             <input
               ref={bgInputRef}
@@ -406,7 +421,7 @@ export function ThemesSection() {
           <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[11.5px] text-muted-foreground">
-                Opacity
+                {t("settings.themes.opacity")}
               </span>
               <span className="tabular-nums text-[11px] text-muted-foreground">
                 {Math.round(backgroundOpacity * 100)}%
@@ -420,7 +435,9 @@ export function ThemesSection() {
               onValueChange={(v) => void setBackgroundOpacity(v[0] ?? 0)}
             />
             <div className="flex items-center justify-between gap-3 pt-1">
-              <span className="text-[11.5px] text-muted-foreground">Blur</span>
+              <span className="text-[11.5px] text-muted-foreground">
+                {t("settings.themes.blur")}
+              </span>
               <span className="tabular-nums text-[11px] text-muted-foreground">
                 {backgroundBlur}px
               </span>
@@ -435,8 +452,7 @@ export function ThemesSection() {
           </div>
         ) : (
           <p className="text-[11px] text-muted-foreground">
-            Drop an image here or pick one. Stored locally; doesn't affect the
-            default look until set.
+            {t("settings.themes.dropHint")}
           </p>
         )}
       </div>

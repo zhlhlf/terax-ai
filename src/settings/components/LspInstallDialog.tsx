@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n";
 import { redetectBinary, type LspPreset } from "@/modules/lsp";
 import { setLspActivation } from "@/modules/settings/store";
 import {
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function LspInstallDialog({ server, onClose }: Props) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -63,12 +65,13 @@ export function LspInstallDialog({ server, onClose }: Props) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Install {server.name} language server</DialogTitle>
+          <DialogTitle>
+            {t("settings.lsp.install.title", { name: server.name })}
+          </DialogTitle>
           <DialogDescription>
-            Terax could not find{" "}
+            {t("settings.lsp.install.descriptionPre")}{" "}
             <code className="font-mono text-foreground">{server.command}</code>{" "}
-            on your PATH. Install it, then check again to enable this language
-            server.
+            {t("settings.lsp.install.descriptionPost")}
           </DialogDescription>
         </DialogHeader>
 
@@ -81,7 +84,7 @@ export function LspInstallDialog({ server, onClose }: Props) {
               type="button"
               className="shrink-0 cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={() => void copyInstallCommand()}
-              title="Copy install command"
+              title={t("settings.install.copyCommand")}
             >
               <HugeiconsIcon
                 icon={copied ? Tick02Icon : Copy01Icon}
@@ -92,15 +95,13 @@ export function LspInstallDialog({ server, onClose }: Props) {
           </div>
         ) : (
           <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Install this custom server manually and make sure its command is
-            available on PATH.
+            {t("settings.lsp.install.manual")}
           </p>
         )}
 
         {notFound ? (
           <p className="text-xs text-destructive">
-            Still not found. Finish the installation and make sure the command
-            is available on PATH.
+            {t("settings.lsp.install.stillNotFound")}
           </p>
         ) : null}
 
@@ -114,7 +115,7 @@ export function LspInstallDialog({ server, onClose }: Props) {
                 void openUrl(server.install?.docsUrl ?? "").catch(console.error)
               }
             >
-              Documentation
+              {t("settings.lsp.install.documentation")}
             </Button>
           ) : (
             <span />
@@ -130,7 +131,9 @@ export function LspInstallDialog({ server, onClose }: Props) {
               strokeWidth={1.9}
               className={checking ? "animate-spin" : undefined}
             />
-            {checking ? "Checking..." : "Check again"}
+            {checking
+              ? t("settings.lsp.install.checking")
+              : t("settings.lsp.install.checkAgain")}
           </Button>
         </DialogFooter>
       </DialogContent>

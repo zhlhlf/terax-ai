@@ -1,3 +1,4 @@
+import { initI18n, type Language, setLanguage } from "@/lib/i18n";
 import { create } from "zustand";
 import {
   DEFAULT_PREFERENCES,
@@ -54,9 +55,11 @@ export const usePreferencesStore = create<State>((set) => ({
       try {
         const prefs = await loadPreferences();
         set({ ...prefs, hydrated: true });
+        initI18n(prefs.language);
         mirrorBgFastPath(prefs.backgroundKind, prefs.backgroundImageId);
         void onPreferencesChange((key, value) => {
           set({ [key]: value } as Partial<State>);
+          if (key === "language") setLanguage(value as Language);
           if (key === "backgroundKind" || key === "backgroundImageId") {
             const s = usePreferencesStore.getState();
             mirrorBgFastPath(s.backgroundKind, s.backgroundImageId);

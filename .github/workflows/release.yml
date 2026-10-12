@@ -89,6 +89,11 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build CLI sidecar
+        env:
+          TERAX_CLI_TARGET: ${{ matrix.rust-target }}
+        run: pnpm build:cli
+
       - name: Write Apple API key to disk
         if: startsWith(matrix.platform, 'macos')
         shell: bash
@@ -139,7 +144,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Terax ${{ github.ref_name }}"
+          releaseName: "Termax ${{ github.ref_name }}"
           releaseBody: "See the assets to download and install. Auto-update is built in."
           releaseDraft: true
           prerelease: false
@@ -155,6 +160,14 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: "-"
+
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Termax ${{ github.ref_name }}"
+          releaseBody: "See the assets to download and install. Auto-update is built in."
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
 
       # Strip the bundled libwayland-* libs from the AppImage so it loads the
       # host copies at runtime. The Ubuntu 22.04 build host ships libwayland

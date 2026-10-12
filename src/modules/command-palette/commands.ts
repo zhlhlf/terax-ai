@@ -15,8 +15,6 @@ import {
   Search01Icon,
   Settings01Icon,
   SidebarLeftIcon,
-  SourceCodeIcon,
-  SparklesIcon,
   TerminalIcon,
   ViewIcon,
 } from "@hugeicons/core-free-icons";
@@ -27,10 +25,8 @@ export const COMMAND_GROUPS = [
   "Spaces",
   "Tabs",
   "Panes",
-  "Git",
   "Search",
   "View",
-  "AI",
 ] as const;
 
 export type CommandPaletteActionContext = {
@@ -40,12 +36,9 @@ export type CommandPaletteActionContext = {
   explorerRoot: string | null;
   home: string | null;
   openNewTab: () => void;
-  openNewBlock: () => void;
   openNewPrivate: () => void;
   openNewEditor: () => void;
   openNewPreview: () => void;
-  openGitGraph: () => void;
-  toggleSourceControl: () => void;
   closeActiveTabOrPane: () => void;
   splitPaneRight: () => void;
   splitPaneDown: () => void;
@@ -53,8 +46,6 @@ export type CommandPaletteActionContext = {
   focusExplorerSearch: () => void;
   toggleSidebar: () => void;
   toggleHiddenFiles: () => void;
-  toggleAi: () => void;
-  askAiSelection: () => void;
   openSettings: () => void;
   openKeyboardShortcuts: () => void;
   spaces: { id: string; name: string }[];
@@ -169,15 +160,6 @@ export function createCommandItems(
       run: ctx.openNewTab,
     },
     {
-      id: "tab.newBlock",
-      title: "New block terminal",
-      titleKey: "palette.cmd.newBlockTerminal",
-      group: "Tabs",
-      keywords: ["blocks", "warp", "command blocks", "terminal"],
-      icon: DashboardSquare01Icon,
-      run: ctx.openNewBlock,
-    },
-    {
       id: "tab.newPrivate",
       title: "New private terminal",
       titleKey: "palette.cmd.newPrivateTerminal",
@@ -248,25 +230,6 @@ export function createCommandItems(
       run: ctx.splitPaneDown,
     },
     {
-      id: "git.graph",
-      title: "Open git graph",
-      titleKey: "palette.cmd.openGitGraph",
-      group: "Git",
-      keywords: ["git", "graph", "history", "log", "commits"],
-      icon: SourceCodeIcon,
-      run: ctx.openGitGraph,
-    },
-    {
-      id: "git.source",
-      title: "Toggle source control",
-      titleKey: "palette.cmd.toggleSourceControl",
-      group: "Git",
-      keywords: ["git", "source control", "changes", "staging", "diff"],
-      icon: SourceCodeIcon,
-      shortcutId: "pane.source",
-      run: ctx.toggleSourceControl,
-    },
-    {
       id: "search.content",
       title: "Find content in files",
       titleKey: "palette.cmd.findContentInFiles",
@@ -333,26 +296,6 @@ export function createCommandItems(
       icon: ViewIcon,
       shortcutId: "explorer.toggleHidden",
       run: ctx.toggleHiddenFiles,
-    },
-    {
-      id: "ai.toggle",
-      title: "Toggle AI agent",
-      titleKey: "palette.cmd.toggleAiAgent",
-      group: "AI",
-      keywords: ["assistant", "chat", "agent"],
-      icon: SparklesIcon,
-      shortcutId: "ai.toggle",
-      run: ctx.toggleAi,
-    },
-    {
-      id: "ai.askSelection",
-      title: "Ask AI about selection",
-      titleKey: "palette.cmd.askAiSelection",
-      group: "AI",
-      keywords: ["selection", "explain", "assistant", "chat"],
-      icon: SparklesIcon,
-      shortcutId: "ai.askSelection",
-      run: ctx.askAiSelection,
     },
   ];
 }

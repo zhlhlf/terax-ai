@@ -8,7 +8,6 @@ export type ShortcutId =
   | "commandPalette.open"
   | "commandPalette.content"
   | "tab.new"
-  | "tab.newBlock"
   | "tab.newPrivate"
   | "tab.newPreview"
   | "tab.newEditor"
@@ -27,11 +26,8 @@ export type ShortcutId =
   | "pane.swapRight"
   | "pane.swapUp"
   | "pane.swapDown"
-  | "pane.source"
   | "terminal.clear"
   | "terminal.toggleInput"
-  | "blocks.prev"
-  | "blocks.next"
   | "search.focus"
   | "explorer.search"
   | "explorer.focus"
@@ -40,16 +36,11 @@ export type ShortcutId =
   | "view.zoomOut"
   | "view.zoomReset"
   | "view.zenMode"
-  | "ai.toggle"
-  | "ai.toggleMini"
-  | "ai.askSelection"
-  | "agent.focusAttention"
   | "settings.open"
   | "sidebar.toggle"
   | "editor.undo"
   | "editor.redo"
   | "editor.save"
-  | "editor.aiComplete"
   | "editor.codeComplete";
 
 export type ShortcutGroup =
@@ -59,7 +50,6 @@ export type ShortcutGroup =
   | "Panes"
   | "Terminal"
   | "Search"
-  | "AI"
   | "View"
   | "Editor";
 
@@ -103,12 +93,6 @@ export const SHORTCUTS: Shortcut[] = [
     label: "shortcut.tab.new",
     group: "Tabs",
     defaultBindings: [{ [MOD_PROP]: true, key: "t" }],
-  },
-  {
-    id: "tab.newBlock",
-    label: "shortcut.tab.newBlock",
-    group: "Tabs",
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "t" }],
   },
   {
     id: "tab.newPrivate",
@@ -184,12 +168,6 @@ export const SHORTCUTS: Shortcut[] = [
     defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "ArrowDown" }],
   },
   {
-    id: "pane.source",
-    label: "shortcut.pane.source",
-    group: "Panes",
-    defaultBindings: [{ [MOD_PROP]: true, key: "g" }],
-  },
-  {
     id: "terminal.clear",
     label: "shortcut.terminal.clear",
     group: "Terminal",
@@ -203,20 +181,6 @@ export const SHORTCUTS: Shortcut[] = [
     label: "shortcut.terminal.toggleInput",
     group: "Terminal",
     defaultBindings: [{ [MOD_PROP]: true, key: "u" }],
-  },
-  {
-    id: "blocks.prev",
-    label: "shortcut.blocks.prev",
-    group: "Terminal",
-    defaultBindings: [{ [MOD_PROP]: true, key: "ArrowUp" }],
-    allowRepeat: true,
-  },
-  {
-    id: "blocks.next",
-    label: "shortcut.blocks.next",
-    group: "Terminal",
-    defaultBindings: [{ [MOD_PROP]: true, key: "ArrowDown" }],
-    allowRepeat: true,
   },
   {
     id: "tab.next",
@@ -267,32 +231,6 @@ export const SHORTCUTS: Shortcut[] = [
     label: "shortcut.search.focus",
     group: "Search",
     defaultBindings: [{ [MOD_PROP]: true, key: "f" }],
-  },
-  {
-    id: "ai.toggle",
-    label: "shortcut.ai.toggle",
-    group: "AI",
-    defaultBindings: [{ [MOD_PROP]: true, key: "i" }],
-  },
-  {
-    id: "ai.toggleMini",
-    label: "shortcut.ai.toggleMini",
-    group: "AI",
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "i" }],
-  },
-  {
-    id: "ai.askSelection",
-    label: "shortcut.ai.askSelection",
-    group: "AI",
-    // Keep Mod+L available to the shell for clear-screen, including when
-    // terminal text is selected and this shortcut is otherwise eligible.
-    defaultBindings: [{ [MOD_PROP]: true, key: "j" }],
-  },
-  {
-    id: "agent.focusAttention",
-    label: "shortcut.agent.focusAttention",
-    group: "AI",
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "a" }],
   },
   {
     id: "sidebar.toggle",
@@ -379,12 +317,6 @@ export const SHORTCUTS: Shortcut[] = [
     defaultBindings: [{ [MOD_PROP]: true, key: "s" }],
   },
   {
-    id: "editor.aiComplete",
-    label: "shortcut.editor.aiComplete",
-    group: "Editor",
-    defaultBindings: [{ alt: true, key: "\\" }],
-  },
-  {
     id: "editor.codeComplete",
     label: "shortcut.editor.codeComplete",
     group: "Editor",
@@ -399,7 +331,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   "Terminal",
   "View",
   "Search",
-  "AI",
   "Editor",
 ];
 

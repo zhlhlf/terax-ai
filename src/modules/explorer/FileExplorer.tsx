@@ -47,11 +47,7 @@ import { COMPACT_CONTENT, COMPACT_ITEM } from "./lib/menuItemClass";
 import { useExplorerDnd } from "./lib/useExplorerDnd";
 import { useExplorerFileDrop } from "./lib/useExplorerFileDrop";
 import { useFileTree } from "./lib/useFileTree";
-import { useGitStatus } from "./lib/useGitStatus";
-import type { GitStatusCode } from "./lib/gitStatusUtils";
 import { useGlobalShortcuts } from "@/modules/shortcuts";
-import { usePreferencesStore } from "@/modules/settings/preferences";
-import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
 import type { TerminalPathDropTarget } from "@/modules/terminal";
 
 export type FileExplorerHandle = {
@@ -68,11 +64,7 @@ type Props = {
   onPathsDeleted?: (paths: string[]) => void;
   canReplacePath?: (path: string) => boolean;
   onRevealInTerminal?: (path: string) => void;
-  onOpenInSourceControl?: (path: string) => void;
-  onOpenGitHistory?: (path: string) => void;
-  onAttachToAgent?: (path: string) => void;
   pathDropTarget?: TerminalPathDropTarget;
-  gitStatus?: GitStatusSnapshot | null;
 };
 
 type Row =
@@ -84,8 +76,6 @@ type Row =
       isDir: boolean;
       isExpanded: boolean;
       depth: number;
-      gitignored: boolean;
-      gitStatusCode: GitStatusCode | null;
     }
   | {
       kind: "rename";
@@ -94,8 +84,6 @@ type Row =
       name: string;
       isDir: boolean;
       depth: number;
-      gitignored: boolean;
-      gitStatusCode: GitStatusCode | null;
     }
   | { kind: "pending"; key: string; depth: number; pendingKind: "file" | "dir" }
   | {
@@ -122,13 +110,12 @@ function parentOf(path: string, fallback: string): string {
 function buildRows(
   rootPath: string,
   tree: ReturnType<typeof useFileTree>,
-  lookup: (path: string) => GitStatusCode | null,
   loadingLabel: string,
 ): { rows: Row[]; entryIndexByPath: Map<string, number> } {
   const rows: Row[] = [];
   const entryIndexByPath = new Map<string, number>();
 
-  const walk = (parent: string, depth: number, parentIgnored: boolean) => {
+  const walk = (parent: string, depth: number) => {
     const node = tree.nodes[parent];
     if (!node || node.status !== "loaded") return;
     for (const entry of node.entries) {
@@ -136,8 +123,6 @@ function buildRows(
       const isDir = entry.kind === "dir";
       const expanded = isDir && tree.expanded.has(path);
       const isRenaming = tree.renaming === path;
-      const gitignored = parentIgnored || entry.gitignored;
-      const gitStatusCode = gitignored ? null : lookup(path);
       if (isRenaming) {
         rows.push({
           kind: "rename",
@@ -146,8 +131,6 @@ function buildRows(
           name: entry.name,
           isDir,
           depth,
-          gitignored,
-          gitStatusCode,
         });
       } else {
         entryIndexByPath.set(path, rows.length);
@@ -159,8 +142,6 @@ function buildRows(
           isDir,
           isExpanded: expanded,
           depth,
-          gitignored,
-          gitStatusCode,
         });
       }
       if (isDir && expanded) {
@@ -190,13 +171,13 @@ function buildRows(
             message: child.message,
           });
         } else if (child?.status === "loaded") {
-          walk(path, depth + 1, gitignored);
+          walk(path, depth + 1);
         }
       }
     }
   };
 
-  walk(rootPath, 0, false);
+  walk(rootPath, 0);
   return { rows, entryIndexByPath };
 }
 
@@ -210,11 +191,7 @@ export const FileExplorer = memo(
       onPathsDeleted,
       canReplacePath,
       onRevealInTerminal,
-      onOpenInSourceControl,
-      onOpenGitHistory,
-      onAttachToAgent,
       pathDropTarget,
-      gitStatus,
     },
     ref,
   ) {
@@ -224,12 +201,6 @@ export const FileExplorer = memo(
       onPathsDeleted,
       canReplacePath,
     });
-    const gitDecorations = usePreferencesStore((s) => s.explorerGitDecorations);
-    const { lookup: lookupGitStatus } = useGitStatus(
-      rootPath,
-      gitDecorations ? gitStatus : null,
-      gitDecorations,
-    );
     const [selectedPaths, setSelectedPaths] = useState<Set<string>>(
       () => new Set(),
     );
@@ -254,7 +225,7 @@ export const FileExplorer = memo(
           rows: [] as Row[],
           entryIndexByPath: new Map<string, number>(),
         };
-      return buildRows(rootPath, tree, lookupGitStatus, t("explorer.loading"));
+      return buildRows(rootPath, tree, t("explorer.loading"));
       // `tree` is intentionally omitted: its identity changes every render, but
       // the listed fields are the only inputs buildRows actually reads.
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,7 +235,6 @@ export const FileExplorer = memo(
       tree.expanded,
       tree.renaming,
       tree.pendingCreate,
-      lookupGitStatus,
       t,
     ]);
 
@@ -581,8 +551,6 @@ export const FileExplorer = memo(
               multiSelectActive={selectedPaths.size > 1}
               onOpenFile={onOpenFile}
               onSelectPath={handleEntrySelect}
-              gitStatusCode={row.gitStatusCode}
-              gitignored={gitDecorations && row.gitignored}
             />
           );
         }
@@ -676,9 +644,6 @@ export const FileExplorer = memo(
           onRequestClose={() => setIsSearchOpen(false)}
           onActiveChange={setIsSearchActive}
           onRevealInTerminal={onRevealInTerminal}
-          onOpenInSourceControl={onOpenInSourceControl}
-          onOpenGitHistory={onOpenGitHistory}
-          onAttachToAgent={onAttachToAgent}
         />
 
         {!isSearchActive ? (
@@ -839,22 +804,6 @@ export const FileExplorer = memo(
                       {t("explorer.menu.openInTerminal")}
                     </ContextMenuItem>
                   )}
-                  {menuTarget.isDir && onOpenInSourceControl && (
-                    <ContextMenuItem
-                      className={COMPACT_ITEM}
-                      onSelect={() => onOpenInSourceControl(menuTarget.path)}
-                    >
-                      {t("explorer.menu.openInSourceControl")}
-                    </ContextMenuItem>
-                  )}
-                  {menuTarget.isDir && onOpenGitHistory && (
-                    <ContextMenuItem
-                      className={COMPACT_ITEM}
-                      onSelect={() => onOpenGitHistory(menuTarget.path)}
-                    >
-                      {t("explorer.menu.openGitHistory")}
-                    </ContextMenuItem>
-                  )}
                   <ContextMenuItem
                     className={COMPACT_ITEM}
                     onSelect={() => void revealInFinder(menuTarget.path)}
@@ -906,12 +855,6 @@ export const FileExplorer = memo(
                     {t("explorer.menu.copyRelativePath")}
                   </ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem
-                    className={COMPACT_ITEM}
-                    onSelect={() => onAttachToAgent?.(menuTarget.path)}
-                  >
-                    {t("explorer.menu.attachToAgent")}
-                  </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem
                     className={COMPACT_ITEM}
@@ -940,22 +883,6 @@ export const FileExplorer = memo(
                       onSelect={() => onRevealInTerminal(rootPath)}
                     >
                       {t("explorer.menu.openInTerminal")}
-                    </ContextMenuItem>
-                  )}
-                  {onOpenInSourceControl && (
-                    <ContextMenuItem
-                      className={COMPACT_ITEM}
-                      onSelect={() => onOpenInSourceControl(rootPath)}
-                    >
-                      {t("explorer.menu.openInSourceControl")}
-                    </ContextMenuItem>
-                  )}
-                  {onOpenGitHistory && (
-                    <ContextMenuItem
-                      className={COMPACT_ITEM}
-                      onSelect={() => onOpenGitHistory(rootPath)}
-                    >
-                      {t("explorer.menu.openGitHistory")}
                     </ContextMenuItem>
                   )}
                   <ContextMenuItem

@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useState } from "react";
 import { homeDir } from "@tauri-apps/api/path";
 import { t } from "@/lib/i18n";
-import { native } from "@/modules/ai/lib/native";
+import { native } from "@/lib/native";
 import type { Tab } from "@/modules/tabs";
 import {
   getWslHome,

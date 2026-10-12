@@ -51,9 +51,6 @@ type Props = {
   onRequestClose: () => void;
   onActiveChange?: (active: boolean) => void;
   onRevealInTerminal?: (path: string) => void;
-  onOpenInSourceControl?: (path: string) => void;
-  onOpenGitHistory?: (path: string) => void;
-  onAttachToAgent?: (path: string) => void;
 };
 
 export type ExplorerSearchHandle = {
@@ -68,9 +65,6 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
   onRequestClose,
   onActiveChange,
   onRevealInTerminal,
-  onOpenInSourceControl,
-  onOpenGitHistory,
-  onAttachToAgent,
 }: Props,
   ref,
 ) {
@@ -292,22 +286,6 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
                           {t("explorer.menu.openInTerminal")}
                         </ContextMenuItem>
                       )}
-                      {hit.is_dir && onOpenInSourceControl && (
-                        <ContextMenuItem
-                          className={COMPACT_ITEM}
-                          onSelect={() => onOpenInSourceControl(hit.path)}
-                        >
-                          {t("explorer.menu.openInSourceControl")}
-                        </ContextMenuItem>
-                      )}
-                      {hit.is_dir && onOpenGitHistory && (
-                        <ContextMenuItem
-                          className={COMPACT_ITEM}
-                          onSelect={() => onOpenGitHistory(hit.path)}
-                        >
-                          {t("explorer.menu.openGitHistory")}
-                        </ContextMenuItem>
-                      )}
                       <ContextMenuItem
                         className={COMPACT_ITEM}
                         onSelect={() => void revealInFinder(hit.path)}
@@ -322,12 +300,6 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
                         {t("explorer.menu.copyPath")}
                       </ContextMenuItem>
                       <ContextMenuSeparator />
-                      <ContextMenuItem
-                        className={COMPACT_ITEM}
-                        onSelect={() => onAttachToAgent?.(hit.path)}
-                      >
-                        {t("explorer.menu.attachToAgent")}
-                      </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
                 );

@@ -20,9 +20,7 @@ import type { TerminalBackendKind } from "./backend/contracts";
 import { resolvedTerminalBackend } from "./backend/selection";
 import {
   useGhosttyTerminalSession,
-  ghosttyBlockGeometry,
 } from "./ghostty/useGhosttyTerminalSession";
-import { ghosttyBlocks } from "./ghostty/ghosttyBlockSessions";
 import { leafGridSelection } from "./lib/terminalSessionApi";
 import {
   shouldOpenTerminalContextMenu,
@@ -44,8 +42,6 @@ export type TerminalPaneProps = {
   /** This leaf is the active pane within its tab and receives auto-focus. */
   focused?: boolean;
   initialCwd?: string;
-  /** Enable command-block decorations (OSC 133) for this terminal. */
-  blocks?: boolean;
   onSearchReady?: (leafId: number, addon: TerminalSearchController) => void;
   onExit?: (leafId: number, code: number) => void;
   onCwd?: (leafId: number, cwd: string) => void;
@@ -54,7 +50,6 @@ export type TerminalPaneProps = {
 const TerminalAccessibleOutput = lazy(
   () => import("./ghostty/TerminalAccessibleOutput"),
 );
-const GhosttyBlockOverlay = lazy(() => import("./ghostty/GhosttyBlockOverlay"));
 
 const GhosttyTerminalPane = memo(
   forwardRef<
@@ -68,7 +63,6 @@ const GhosttyTerminalPane = memo(
       visible,
       focused = true,
       initialCwd,
-      blocks = false,
       onSearchReady,
       onExit,
       onCwd,
@@ -81,7 +75,6 @@ const GhosttyTerminalPane = memo(
       (state) => state.terminalScreenReader,
     );
     const containerRef = useRef<HTMLDivElement>(null);
-    const down = useRef<{ x: number; y: number } | null>(null);
     const [canCopySelection, setCanCopySelection] = useState(false);
     const { resolvedMode, activeTheme } = useTheme();
     const session = useGhosttyTerminalSession({
@@ -91,7 +84,6 @@ const GhosttyTerminalPane = memo(
       visible,
       focused,
       initialCwd,
-      blocks,
       onSearchReady: (search) => onSearchReady?.(leafId, search),
       onExit: (code) => onExit?.(leafId, code),
       onCwd: (cwd) => onCwd?.(leafId, cwd),
@@ -140,51 +132,6 @@ const GhosttyTerminalPane = memo(
               // whatever selection existed when the pane last rendered.
               setCanCopySelection(leafGridSelection(leafId) !== null);
             }}
-            onPointerDownCapture={
-              blocks
-                ? (event) => {
-                    down.current =
-                      event.button === 0 &&
-                      event.detail === 1 &&
-                      !event.shiftKey &&
-                      !event.altKey &&
-                      !event.metaKey &&
-                      !event.ctrlKey &&
-                      containerRef.current?.contains(event.target as Node)
-                        ? { x: event.clientX, y: event.clientY }
-                        : null;
-                  }
-                : undefined
-            }
-            onPointerUp={
-              blocks
-                ? (event) => {
-                    const origin = down.current;
-                    down.current = null;
-                    const state = ghosttyBlocks(leafId);
-                    const geometry = ghosttyBlockGeometry(leafId);
-                    if (
-                      origin &&
-                      geometry &&
-                      geometry.height > 0 &&
-                      Math.hypot(
-                        event.clientX - origin.x,
-                        event.clientY - origin.y,
-                      ) <= 4 &&
-                      !state?.model?.trackedSelection?.()
-                    ) {
-                      const row = Math.floor(
-                        (event.clientY - geometry.top) / geometry.height,
-                      );
-                      if (state?.model && row >= 0 && row < state.model.rows)
-                        state.controller?.selectAtLine(
-                          state.model.bufferLineAtViewportRow(row),
-                        );
-                    }
-                    if (state?.getMode() === "prompt") state.focus?.();
-                  }
-                : undefined
-            }
             data-terminal-backend={backend}
           >
             <div ref={containerRef} className="absolute inset-0" />
@@ -196,11 +143,6 @@ const GhosttyTerminalPane = memo(
                   focused={focused}
                   onExit={session.focus}
                 />
-              </Suspense>
-            )}
-            {blocks && (
-              <Suspense fallback={null}>
-                <GhosttyBlockOverlay leafId={leafId} />
               </Suspense>
             )}
             {session.error && (

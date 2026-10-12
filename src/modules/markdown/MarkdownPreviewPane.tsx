@@ -1,4 +1,4 @@
-import { MarkdownCode } from "@/components/ai-elements/markdown-code";
+import { MarkdownCode } from "./MarkdownCode";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { currentWorkspaceEnv } from "@/modules/workspace";

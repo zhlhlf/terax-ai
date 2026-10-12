@@ -2,8 +2,6 @@ import { Button } from "@/components/ui/button";
 import { WindowControls } from "@/components/WindowControls";
 import { useT } from "@/lib/i18n";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
-import { NotificationBell } from "@/modules/agents";
-import type { AgentLaunchRequest } from "@/modules/agents/lib/launcher";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { Tab } from "@/modules/tabs";
 import { TabBar } from "@/modules/tabs";
@@ -31,12 +29,9 @@ type Props = {
   activeId: number;
   onSelect: (id: number) => void;
   onNew: () => void;
-  onNewBlock: () => void;
   onNewPrivate: () => void;
   onNewPreview: () => void;
   onNewEditor: () => void;
-  onNewGitGraph: () => void;
-  onLaunchAgents: (request: AgentLaunchRequest) => void;
   onClose: (id: number) => void;
   /** Chrome-style: close every tab to the right of the given tab. */
   onCloseTabsToRight: (id: number) => void;
@@ -51,8 +46,6 @@ type Props = {
   onOverrideLanguage?: (id: number, lang: string | null) => void;
   onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
-  onActivateAgent: (tabId: number, leafId: number) => void;
-  onActivateLocalAgent: () => void;
   onOpenSettings: () => void;
   spaceSwitcher: ReactNode;
   searchTarget: SearchTarget;
@@ -66,12 +59,9 @@ export function Header({
   activeId,
   onSelect,
   onNew,
-  onNewBlock,
   onNewPrivate,
   onNewPreview,
   onNewEditor,
-  onNewGitGraph,
-  onLaunchAgents,
   onClose,
   onCloseTabsToRight,
   onCloseOtherTabs,
@@ -81,8 +71,6 @@ export function Header({
   onOverrideLanguage,
   onToggleSidebar,
   onOpenCommandPalette,
-  onActivateAgent,
-  onActivateLocalAgent,
   onOpenSettings,
   spaceSwitcher,
   searchTarget,
@@ -145,12 +133,6 @@ export function Header({
           <HugeiconsIcon icon={CommandIcon} size={14} strokeWidth={1.75} />
         </Button>
 
-        {!IS_MAC && (
-          <NotificationBell
-            onActivate={onActivateAgent}
-            onActivateLocal={onActivateLocalAgent}
-          />
-        )}
       </div>
 
       {!IS_MAC && (
@@ -177,12 +159,9 @@ export function Header({
           activeId={activeId}
           onSelect={onSelect}
           onNew={onNew}
-          onNewBlock={onNewBlock}
           onNewPrivate={onNewPrivate}
           onNewPreview={onNewPreview}
           onNewEditor={onNewEditor}
-          onNewGitGraph={onNewGitGraph}
-          onLaunchAgents={onLaunchAgents}
           onClose={onClose}
           onCloseTabsToRight={onCloseTabsToRight}
           onCloseOtherTabs={onCloseOtherTabs}
@@ -201,10 +180,6 @@ export function Header({
 
       {IS_MAC && (
         <>
-          <NotificationBell
-            onActivate={onActivateAgent}
-            onActivateLocal={onActivateLocalAgent}
-          />
           {settingsButton}
         </>
       )}

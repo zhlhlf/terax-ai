@@ -1,4 +1,3 @@
-mod agent_detect;
 mod da_filter;
 mod output;
 mod session;
@@ -52,14 +51,12 @@ pub async fn pty_open(
     rows: u16,
     cwd: Option<String>,
     workspace: Option<WorkspaceEnv>,
-    blocks: Option<bool>,
     shell: Option<String>,
     pane_id: Option<u32>,
     on_data: Channel<Response>,
     on_exit: Channel<i32>,
 ) -> Result<u32, String> {
     let workspace = WorkspaceEnv::from_option(workspace);
-    let blocks = blocks.unwrap_or(false);
     let cwd = user_spawn_cwd_or_home(&registry, cwd.as_deref(), &workspace);
     // A Windows helper cannot execute inside WSL without explicit path and
     // network translation. Do not inject credentials for a broken command.
@@ -77,7 +74,6 @@ pub async fn pty_open(
             rows,
             cwd,
             workspace,
-            blocks,
             shell,
             control_env,
             on_data,

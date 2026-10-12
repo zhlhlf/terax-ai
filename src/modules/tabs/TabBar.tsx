@@ -15,8 +15,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { AgentIcon } from "@/modules/agents/lib/agentIcon";
-import type { AgentLaunchRequest } from "@/modules/agents/lib/launcher";
 import {
   ALL_LANGUAGES,
   EXPOSED_LANGUAGES,
@@ -24,22 +22,12 @@ import {
 import { resolveDisplayName } from "@/modules/editor/lib/languageResolver";
 import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
 import {
-  leafIds,
-  ptyIdForLeaf,
-  tabAgentStatus,
-  useAgentActivityStore,
-} from "@/modules/terminal";
-import {
   ArrowRight01Icon,
   Cancel01Icon,
   CancelCircleIcon,
-  CheckmarkCircle01Icon,
-  Clock01Icon,
   ComputerTerminal02Icon,
-  GitCompareIcon,
   Globe02Icon,
   IncognitoIcon,
-  Message02Icon,
   PencilEdit02Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
@@ -61,12 +49,9 @@ type Props = {
   activeId: number;
   onSelect: (id: number) => void;
   onNew: () => void;
-  onNewBlock: () => void;
   onNewPrivate: () => void;
   onNewPreview: () => void;
   onNewEditor: () => void;
-  onNewGitGraph: () => void;
-  onLaunchAgents: (request: AgentLaunchRequest) => void;
   onClose: (id: number) => void;
   /** Chrome-style: close every tab to the right of the given tab. */
   onCloseTabsToRight: (id: number) => void;
@@ -87,12 +72,9 @@ export function TabBar({
   activeId,
   onSelect,
   onNew,
-  onNewBlock,
   onNewPrivate,
   onNewPreview,
   onNewEditor,
-  onNewGitGraph,
-  onLaunchAgents,
   onClose,
   onCloseTabsToRight,
   onCloseOtherTabs,
@@ -242,7 +224,7 @@ export function TabBar({
             />
             {tabs.map((t, i) => {
               const isPreview =
-                (t.kind === "editor" || t.kind === "git-diff") && t.preview;
+                t.kind === "editor" && t.preview;
               const isActive = t.id === activeId;
               const isNew = !firstRender && !seen.has(t.id);
 
@@ -594,12 +576,9 @@ export function TabBar({
         </Tabs>
         <NewTabMenu
           onNew={onNew}
-          onNewBlock={onNewBlock}
           onNewPrivate={onNewPrivate}
           onNewPreview={onNewPreview}
           onNewEditor={onNewEditor}
-          onNewGitGraph={onNewGitGraph}
-          onLaunchAgents={onLaunchAgents}
         />
       </div>
     </div>
@@ -615,22 +594,7 @@ function DropIndicator() {
   );
 }
 
-function useTabAgentStatus(tab: Tab) {
-  const phases = useAgentActivityStore((s) => s.phases);
-  const agents = useAgentActivityStore((s) => s.agents);
-  if (tab.kind !== "terminal" || tab.private) {
-    return { state: null, agent: null } as const;
-  }
-  const ptyIds: number[] = [];
-  for (const leaf of leafIds(tab.paneTree)) {
-    const id = ptyIdForLeaf(leaf);
-    if (id !== null) ptyIds.push(id);
-  }
-  return tabAgentStatus(phases, agents, ptyIds);
-}
-
 export function TabIcon({ tab }: { tab: Tab }) {
-  const agentStatus = useTabAgentStatus(tab);
   if (tab.kind === "editor" || tab.kind === "markdown") {
     const url =
       tab.kind === "editor" && tab.overrideLanguage
@@ -660,16 +624,6 @@ export function TabIcon({ tab }: { tab: Tab }) {
       />
     );
   }
-  if (tab.kind === "ai-diff") {
-    return (
-      <HugeiconsIcon
-        icon={GitCompareIcon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
   if (tab.kind === "terminal" && tab.private) {
     return (
       <HugeiconsIcon
@@ -678,54 +632,6 @@ export function TabIcon({ tab }: { tab: Tab }) {
         strokeWidth={2}
         className="shrink-0"
       />
-    );
-  }
-  if (tab.kind === "git-diff" || tab.kind === "git-commit-file") {
-    return (
-      <HugeiconsIcon
-        icon={GitCompareIcon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (tab.kind === "git-history") {
-    return (
-      <HugeiconsIcon
-        icon={Clock01Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (agentStatus.state === "attention") {
-    return (
-      <HugeiconsIcon
-        icon={Message02Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (agentStatus.state === "finished") {
-    return (
-      <HugeiconsIcon
-        icon={CheckmarkCircle01Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (
-    (agentStatus.state === "working" || agentStatus.state === "idle") &&
-    agentStatus.agent
-  ) {
-    return (
-      <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />
     );
   }
   return (

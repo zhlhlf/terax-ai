@@ -4,12 +4,6 @@ This guide elaborates on `TERAX.md`. If anything here conflicts with `TERAX.md`,
 
 ## Session model
 
-Block sessions keep direct terminal input until OSC 133 confirms prompt input.
-Bare shells therefore remain usable. Bash before 4.4 lacks PS0 and emits
-`OSC 133;B;terax_blocks=0`, retaining its native prompt instead of activating
-Terax's shared command bar. Shell command labels stay bounded; block rerun uses
-the complete command submitted through Terax, never a truncated OSC label.
-
 A terminal tab maps to one PTY session. Sessions live in `PtyState` (`src-tauri/src/modules/pty/mod.rs:20`):
 
 ```rust
@@ -27,7 +21,7 @@ IDs start at 1 and monotonically increase; they are never reused so the frontend
 
 `session::spawn` (`session.rs:102`) starts three threads per session:
 
-1. **Reader** - reads bytes from the PTY master, runs the DA filter and agent detector, and pushes filtered bytes into a pending buffer.
+1. **Reader** - reads bytes from the PTY master, runs the DA filter, and pushes filtered bytes into a pending buffer.
 2. **Flusher** - adaptively coalesces output and sends it to the frontend over the data channel.
 3. **Waiter** - waits for the child process to exit, drains the flusher, and emits the exit code.
 
@@ -61,39 +55,9 @@ remains a release gate.
 
 ## Shell bootstrapping
 
-`shell_init::build_command` (`shell_init.rs:53`) builds the `CommandBuilder` used to spawn the shell. The path and arguments depend on the platform and the selected workspace environment (Local or a WSL distro).
+`shell_init::build_command` builds the `CommandBuilder` used to spawn the shell. Terax starts native shells directly and does not inject profiles or wrapper scripts. Common environment variables and the workspace cwd are applied before spawn.
 
-### Unix
-
-Integration scripts live in `src-tauri/src/modules/pty/scripts/`:
-
-- `zshenv.zsh`, `zprofile.zsh`, `zlogin.zsh`, `zshrc.zsh` for zsh
-- `bashrc.bash` for bash
-- `init.fish` for fish, installed to `~/.config/fish/conf.d/terax.fish`
-
-Zsh is launched with `ZDOTDIR` pointing at a temp directory that sources our scripts and then the user's real configs. Bash uses `--rcfile` with a wrapper that sources the user's `~/.bashrc` after Terax's. Fish uses `conf.d` so no user file is replaced.
-
-All integrated shells emit **OSC 7** (cwd) and **OSC 133 A/B/C/D** (prompt boundaries and exit code) so Terax can track cwd and detect command boundaries without parsing the user's prompt.
-
-### Windows
-
-On Windows the shell priority is:
-
-1. `pwsh.exe` (PowerShell 7+)
-2. `powershell.exe` (Windows PowerShell 5.1)
-3. `cmd.exe` (no integration)
-
-PowerShell loads `profile.ps1` via:
-
-```text
-pwsh -NoLogo -NoExit -ExecutionPolicy Bypass -File <profile.ps1>
-```
-
-The profile wraps the user's existing `prompt` function to emit OSC 7 + OSC 133 A/B/D after `$PROFILE` runs. The cwd is normalized to backslashes before being passed to ConPTY because `CreateProcessW` misbehaves with forward slashes.
-
-### Fish 4.0+
-
-Fish 4.0 writes its own OSC 133 prompt markers. To avoid doubling, Terax sets `fish_features=no-mark-prompt` and re-asserts its own prompt via `-C` after `config.fish` runs.
+Unix uses the selected shell path. Windows resolves PowerShell 7, Windows PowerShell 5.1, or cmd, and normalizes cwd to backslashes before passing it to ConPTY. A WSL workspace is launched through `wsl.exe` with the selected distro and cwd.
 
 ## Concurrency and process lifetime on Windows
 
@@ -112,10 +76,6 @@ On macOS and Linux, `Drop for Session` calls `killer.kill()`. Dev `Ctrl-C` of `c
 ### DA filter
 
 PowerShell / PSReadLine sends a cursor-position query (`ESC[6n`) at startup and blocks until it gets an answer. The `DaFilter` (`da_filter.rs`) intercepts that query and replies on the PTY input so the shell does not hang.
-
-### Agent detection
-
-The reader thread runs an `AgentDetector` (`agent_detect.rs`) over the byte stream. It is armed by `OSC 133;C;<cmd>` or by a self-armed `OSC 777` marker and emits `terax:agent-signal` transitions (`started`, `working`, `attention`, `finished`, `exited`). Detection is driven only by OSC sequences, never by raw output, so a repainting TUI never flaps.
 
 ### Enter key
 

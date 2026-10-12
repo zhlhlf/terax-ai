@@ -1,4 +1,4 @@
-import { historyList } from "@/modules/terminal/block/lib/history";
+import { invoke } from "@tauri-apps/api/core";
 import { useCallback } from "react";
 import { type AsyncQueryState, useAsyncQuery } from "./useAsyncQuery";
 
@@ -10,7 +10,15 @@ export function useCommandHistory(
   enabled: boolean,
 ): AsyncQueryState<string> {
   const run = useCallback(
-    async (q: string) => Array.from(new Set(await historyList(q, LIMIT))),
+    async (q: string) =>
+      Array.from(
+        new Set(
+          await invoke<string[]>("history_list", {
+            query: q,
+            limit: LIMIT,
+          }).catch(() => []),
+        ),
+      ),
     [],
   );
 

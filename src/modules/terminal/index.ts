@@ -1,9 +1,4 @@
 export {
-  type AgentTabStatus,
-  tabAgentStatus,
-  useAgentActivityStore,
-} from "./lib/agentActivity";
-export {
   findLeafCwd,
   hasLeaf,
   isLeaf,
@@ -18,7 +13,6 @@ export {
   disposeSession,
   leafHasForegroundProcess,
   leafIdForPty,
-  navigateFocusedBlocks,
   ptyIdForLeaf,
   respawnSession,
   whenSessionReady,

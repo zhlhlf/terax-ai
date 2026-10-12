@@ -6,15 +6,13 @@ use std::time::{Duration, Instant};
 
 use portable_pty::{native_pty_system, ChildKiller, MasterPty, PtySize};
 use tauri::ipc::{Channel, Response};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
-use super::agent_detect::AgentDetector;
 use super::da_filter::DaFilter;
 use super::output::{OutputCredit, MAX_BUFFERED_BYTES};
 use super::shell_init;
 use crate::modules::workspace::WorkspaceEnv;
 
-const AGENT_EVENT: &str = "terax:agent-signal";
 
 // Sparse output keeps low interactive latency. Sustained output is aligned to
 // the display cadence so IPC cannot outpace useful terminal presentation.
@@ -286,7 +284,6 @@ pub fn spawn(
     rows: u16,
     cwd: Option<String>,
     workspace: WorkspaceEnv,
-    blocks: bool,
     shell: Option<String>,
     control: Option<crate::modules::control::ShellControlEnv>,
     on_data: Channel<Response>,
@@ -304,7 +301,7 @@ pub fn spawn(
     };
     let pair = pty_system.openpty(size).map_err(|e| e.to_string())?;
 
-    let cmd = shell_init::build_command(cwd, workspace, blocks, shell, control)?;
+    let cmd = shell_init::build_command(cwd, workspace, shell, control)?;
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave);
 
@@ -358,7 +355,6 @@ pub fn spawn(
 
     let output_r = output.clone();
     let writer_for_da = writer.clone();
-    let app_reader = app.clone();
     let first_byte_r = first_byte;
     let reader_thread = thread::Builder::new()
         .name("terax-pty-reader".into())
@@ -366,7 +362,6 @@ pub fn spawn(
             let mut buf = [0u8; READ_BUF];
             let mut filtered: Vec<u8> = Vec::with_capacity(READ_BUF);
             let mut da_filter = DaFilter::new();
-            let mut agent_detect = AgentDetector::new();
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
@@ -384,9 +379,6 @@ pub fn spawn(
                                 spawn_at.elapsed().as_millis()
                             );
                         }
-                        agent_detect.process(&buf[..n], |t| {
-                            let _ = app_reader.emit(AGENT_EVENT, t.into_signal(id));
-                        });
                         filtered.clear();
                         da_filter.process(&buf[..n], &mut filtered, |reply| {
                             if let Ok(mut w) = writer_for_da.lock() {
@@ -415,9 +407,6 @@ pub fn spawn(
                     }
                 }
             }
-            agent_detect.finish(|t| {
-                let _ = app_reader.emit(AGENT_EVENT, t.into_signal(id));
-            });
             output_r.finish_reading();
         })
         .expect("spawn pty reader thread");

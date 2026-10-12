@@ -106,8 +106,6 @@ export function useFileTree(rootPath: string | null, options?: Options) {
   const workspaceKey = workspaceScopeKey(workspace);
   const showHidden = usePreferencesStore((s) => s.showHidden);
   const showHiddenRef = useRef(showHidden);
-  const gitDecorations = usePreferencesStore((s) => s.explorerGitDecorations);
-  const gitDecorationsRef = useRef(gitDecorations);
   const [nodes, setNodes] = useState<TreeState>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [pendingCreate, setPendingCreate] = useState<PendingCreate | null>(
@@ -152,10 +150,6 @@ export function useFileTree(rootPath: string | null, options?: Options) {
   }, [showHidden]);
 
   useEffect(() => {
-    gitDecorationsRef.current = gitDecorations;
-  }, [gitDecorations]);
-
-  useEffect(() => {
     expandedRef.current = expanded;
   }, [expanded]);
 
@@ -182,7 +176,6 @@ export function useFileTree(rootPath: string | null, options?: Options) {
       const entries = await invoke<DirEntry[]>("fs_read_dir", {
         path,
         showHidden: showHiddenRef.current,
-        gitDecorations: gitDecorationsRef.current,
         workspace: currentWorkspaceEnv(),
       });
 
@@ -309,7 +302,7 @@ export function useFileTree(rootPath: string | null, options?: Options) {
     // `nodes` is intentionally omitted so ordinary tree edits don't refetch
     // every expanded directory.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showHidden, gitDecorations, rootPath, fetchChildren]);
+  }, [showHidden, rootPath, fetchChildren]);
 
   const toggle = useCallback(
     (path: string) => {

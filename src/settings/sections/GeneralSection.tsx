@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,19 +15,12 @@ import {
   useT,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import {
-  type OsNotificationResult,
-  testAgentOsNotification,
-} from "@/modules/agents/lib/notify";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ThemePref } from "@/modules/settings/store";
 import {
-  setAgentNotificationSound,
-  setAgentNotifications,
   setAutostart,
   setConfirmCloseRunningTerminal,
   setDefaultWorkspaceEnv,
-  setExplorerGitDecorations,
   setLanguage,
   setRestoreWindowState,
   setShowHidden,
@@ -87,19 +79,11 @@ const TERMINAL_CURSOR_STYLES = [
 ] as const satisfies readonly { value: string; label: TranslationKey }[];
 const LETTER_SPACINGS = [-4, -3, -2, -1, 0, 1, 2, 3, 4] as const;
 
-type ShellInfo = { name: string; path: string; integrated: boolean };
+type ShellInfo = { name: string; path: string };
 const SHELL_AUTO = "auto";
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.05;
-const NOTIFICATION_TEST_DELAY_MS = 2_000;
-
-type NotificationTestState =
-  | OsNotificationResult
-  | "idle"
-  | "waiting"
-  | "sending";
-
 export function GeneralSection() {
   const t = useT();
   const { mode, setMode } = useTheme();
@@ -108,9 +92,6 @@ export function GeneralSection() {
   const autostart = usePreferencesStore((s) => s.autostart);
   const restoreWindowState = usePreferencesStore((s) => s.restoreWindowState);
   const showHidden = usePreferencesStore((s) => s.showHidden);
-  const explorerGitDecorations = usePreferencesStore(
-    (s) => s.explorerGitDecorations,
-  );
   const showHeaderSearch = usePreferencesStore((s) => s.showHeaderSearch);
   const terminalRenderer = usePreferencesStore((s) => s.terminalRenderer);
   const terminalScreenReader = usePreferencesStore(
@@ -133,24 +114,6 @@ export function GeneralSection() {
     (s) => s.confirmCloseRunningTerminal,
   );
   const zoomLevel = usePreferencesStore((s) => s.zoomLevel);
-  const agentNotifications = usePreferencesStore((s) => s.agentNotifications);
-  const agentNotificationSound = usePreferencesStore(
-    (s) => s.agentNotificationSound,
-  );
-  const [notificationTest, setNotificationTest] =
-    useState<NotificationTestState>("idle");
-  const notificationTestPending =
-    notificationTest === "waiting" || notificationTest === "sending";
-
-  const testNotification = async () => {
-    setNotificationTest("waiting");
-    await new Promise((resolve) =>
-      setTimeout(resolve, NOTIFICATION_TEST_DELAY_MS),
-    );
-    setNotificationTest("sending");
-    setNotificationTest(await testAgentOsNotification(agentNotificationSound));
-  };
-
   useEffect(() => {
     let alive = true;
     void isEnabled()
@@ -284,15 +247,6 @@ export function GeneralSection() {
             onCheckedChange={(v) => void setShowHidden(v)}
           />
         </SettingRow>
-        <SettingRow
-          title={t("settings.general.gitDecorations.title")}
-          description={t("settings.general.gitDecorations.description")}
-        >
-          <Switch
-            checked={explorerGitDecorations}
-            onCheckedChange={(v) => void setExplorerGitDecorations(v)}
-          />
-        </SettingRow>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -399,11 +353,9 @@ export function GeneralSection() {
         <SettingRow
           title={t("settings.general.shell.title")}
           description={
-            shells.find((s) => s.path === terminalShell)?.integrated === false
-              ? t("settings.general.shell.descriptionUnsupported")
-              : wslDistros.length > 0
-                ? t("settings.general.shell.descriptionWsl")
-                : t("settings.general.shell.description")
+            wslDistros.length > 0
+              ? t("settings.general.shell.descriptionWsl")
+              : t("settings.general.shell.description")
           }
         >
           <Select
@@ -557,45 +509,6 @@ export function GeneralSection() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>{t("settings.general.agents")}</Label>
-        <SettingRow
-          title={t("settings.general.agentNotifications.title")}
-          description={t("settings.general.agentNotifications.description")}
-        >
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              disabled={!agentNotifications || notificationTestPending}
-              title={t(notificationTestTitle(notificationTest))}
-              onClick={() => void testNotification()}
-            >
-              {t(notificationTestLabel(notificationTest))}
-            </Button>
-            <Switch
-              checked={agentNotifications}
-              disabled={notificationTestPending}
-              onCheckedChange={(v) => {
-                setNotificationTest("idle");
-                void setAgentNotifications(v);
-              }}
-            />
-          </div>
-        </SettingRow>
-        <SettingRow
-          title={t("settings.general.notificationSound.title")}
-          description={t("settings.general.notificationSound.description")}
-        >
-          <Switch
-            checked={agentNotificationSound}
-            disabled={!agentNotifications || notificationTestPending}
-            onCheckedChange={(v) => void setAgentNotificationSound(v)}
-          />
-        </SettingRow>
-      </div>
-
-      <div className="flex flex-col gap-2">
         <Label>{t("settings.general.startup")}</Label>
         <div className="flex flex-col gap-2">
           <SettingRow
@@ -628,38 +541,6 @@ function Label({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
-}
-
-function notificationTestLabel(status: NotificationTestState): TranslationKey {
-  switch (status) {
-    case "waiting":
-      return "settings.general.notificationTest.waiting";
-    case "sending":
-      return "settings.general.notificationTest.sending";
-    case "requested":
-      return "settings.general.notificationTest.requested";
-    case "denied":
-      return "settings.general.notificationTest.denied";
-    case "failed":
-      return "settings.general.notificationTest.failed";
-    default:
-      return "settings.general.notificationTest.idle";
-  }
-}
-
-function notificationTestTitle(status: NotificationTestState): TranslationKey {
-  switch (status) {
-    case "waiting":
-      return "settings.general.notificationTest.titleWaiting";
-    case "requested":
-      return "settings.general.notificationTest.titleRequested";
-    case "denied":
-      return "settings.general.notificationTest.titleDenied";
-    case "failed":
-      return "settings.general.notificationTest.titleFailed";
-    default:
-      return "settings.general.notificationTest.titleIdle";
-  }
 }
 
 function FontFamilyInput({

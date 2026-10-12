@@ -21,7 +21,7 @@ import {
 } from "./lib/terminalClipboard";
 import {
   clearLeafTerminal,
-  focusLeafInput,
+  focusSession,
   leafGridSelection,
   pasteIntoSession,
   selectLeafViewport,
@@ -69,7 +69,7 @@ export function TerminalContextMenu({
         // than the textarea that receives keystrokes, so typing would stop
         // working after the menu is used. Hand focus back to the terminal input.
         event.preventDefault();
-        focusLeafInput(leafId);
+        focusSession(leafId);
       }}
     >
       <ContextMenuItem

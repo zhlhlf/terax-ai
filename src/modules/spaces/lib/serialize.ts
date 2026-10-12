@@ -74,7 +74,6 @@ function serializeTab(tab: Tab): SerializedTab | null {
       return {
         kind: "terminal",
         tree: serializeNode(tab.paneTree, tab.activeLeafId),
-        ...(tab.blocks && { blocks: true }),
         ...(tab.customTitle !== undefined && { customTitle: tab.customTitle }),
       };
     case "editor":

@@ -5,8 +5,6 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { memo } from "react";
 import { InlineInput } from "./InlineInput";
-import { explorerGitTextClass } from "./lib/gitStatusColor";
-import type { GitStatusCode } from "./lib/gitStatusUtils";
 import { fileIconUrl, folderIconUrl } from "./lib/iconResolver";
 
 export type SelectModifiers = { shift: boolean; mod: boolean };
@@ -34,8 +32,6 @@ export type EntryRowProps = {
   multiSelectActive?: boolean;
   onOpenFile: (path: string, pin?: boolean) => void;
   onSelectPath: (path: string, modifiers: SelectModifiers) => void;
-  gitStatusCode?: GitStatusCode | null;
-  gitignored?: boolean;
 };
 
 function EntryRowImpl(props: EntryRowProps) {
@@ -53,8 +49,6 @@ function EntryRowImpl(props: EntryRowProps) {
     multiSelectActive = false,
     onOpenFile,
     onSelectPath,
-    gitStatusCode,
-    gitignored = false,
   } = props;
 
   const iconUrl = isDir ? folderIconUrl(name, isExpanded) : fileIconUrl(name);
@@ -107,9 +101,7 @@ function EntryRowImpl(props: EntryRowProps) {
         "group flex h-6 w-full min-w-0 cursor-pointer items-center gap-2 rounded-sm px-1.5 text-left text-[13px] transition-colors hover:bg-accent/70",
         isSelected
           ? "bg-accent text-foreground"
-          : gitignored
-            ? "text-muted-foreground/70"
-            : "text-foreground/85",
+          : "text-foreground/85",
         isDropTarget && "bg-primary/10 ring-1 ring-inset ring-primary/60",
       )}
       style={{ paddingLeft }}
@@ -132,10 +124,7 @@ function EntryRowImpl(props: EntryRowProps) {
       <span
         className={cn(
           "min-w-0 flex-1 truncate",
-          !isSelected &&
-            !gitignored &&
-            gitStatusCode &&
-            explorerGitTextClass(gitStatusCode),
+          !isSelected && "opacity-90",
         )}
       >
         {name}

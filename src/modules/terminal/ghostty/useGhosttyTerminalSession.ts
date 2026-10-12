@@ -1,9 +1,4 @@
 import { loadSessionRenderer } from "@/modules/terminal/ghostty/loadSessionRenderer";
-import {
-  ensureGhosttyBlocks,
-  ghosttyBlocks,
-  disposeGhosttyBlocks,
-} from "@/modules/terminal/ghostty/ghosttyBlockSessions";
 import { initializeSessionGeneration as startSessionInitialization } from "@/modules/terminal/ghostty/sessionInitialization";
 import { replaceSessionSurface } from "@/modules/terminal/ghostty/replaceSessionSurface";
 import { openExternalUrl } from "@/lib/external-link";
@@ -109,7 +104,6 @@ type Options = {
   visible: boolean;
   focused: boolean;
   initialCwd?: string;
-  blocks?: boolean;
   onExit?: (code: number) => void;
   onCwd?: (cwd: string) => void;
   onSearchReady?: (search: TerminalSearchController) => void;
@@ -122,7 +116,6 @@ export function useGhosttyTerminalSession({
   visible,
   focused,
   initialCwd,
-  blocks = false,
   onSearchReady,
   onExit,
   onCwd,
@@ -157,7 +150,6 @@ export function useGhosttyTerminalSession({
       initialCwdRef.current,
       fontRef.current,
     );
-    if (blocks) ensureGhosttyBlocks(leafId);
     const node = container.current;
     session.container = node;
     setModel(session.model);
@@ -181,7 +173,7 @@ export function useGhosttyTerminalSession({
         session.callbacks = {};
       }
     };
-  }, [leafId, backend, container, blocks]);
+  }, [leafId, backend, container]);
 
   useEffect(() => {
     const session = sessions.get(leafId);
@@ -193,7 +185,6 @@ export function useGhosttyTerminalSession({
     const session = ensureSession(leafId, backend, initialCwdRef.current);
     session.visible = visible;
     session.focused = focused;
-    ghosttyBlocks(leafId)?.setVisible(visible);
     const surface = session.surface;
     if (!surface || session.rendererError) return;
     if (visible && session.container) {
@@ -296,14 +287,6 @@ export function submitToGhosttySession(leafId: number, text: string): boolean {
     session.model?.modes().bracketedPaste ?? false,
   );
   const accepted = session.writer.enqueue(textEncoder.encode(data));
-  if (accepted) {
-    const blocks = ghosttyBlocks(leafId);
-    if (blocks) {
-      blocks.everSubmitted = true;
-      blocks.controller?.submitted(text);
-      blocks.changed();
-    }
-  }
   return accepted;
 }
 
@@ -315,18 +298,12 @@ export function interruptGhosttySession(leafId: number): boolean {
 export function clearGhosttySession(leafId: number): boolean {
   const session = sessions.get(leafId);
   if (!session?.model || session.disposed) return false;
-  ghosttyBlocks(leafId)?.controller?.clear();
   session.model.clear();
   focusGhosttySession(leafId);
   return true;
 }
 
 export function pasteIntoGhosttySession(leafId: number, text: string): boolean {
-  const blocks = ghosttyBlocks(leafId);
-  if (blocks?.getMode() === "prompt" && blocks.paste) {
-    blocks.paste(text);
-    return true;
-  }
   const session = sessions.get(leafId);
   if (!session?.input) return false;
   session.input.paste(text);
@@ -409,7 +386,6 @@ export function disposeGhosttySession(leafId: number): boolean {
   session.generation += 1;
   session.input?.dispose();
   session.surface?.dispose();
-  disposeGhosttyBlocks(leafId);
   session.model?.dispose();
   session.unsubscribeResizeInteraction();
   session.ptyResize.reset();
@@ -432,7 +408,6 @@ export async function respawnGhosttySession(
   session.surface?.dispose();
   session.surface = null;
   session.surfaceOptions = null;
-  ghosttyBlocks(leafId)?.detach();
   session.model?.dispose();
   session.model = null;
   session.callbacks.onModel?.(null);
@@ -455,7 +430,6 @@ export async function respawnGhosttySession(
 export function ghosttySessionDiagnostics() {
   return [...sessions.values()].map((session) => ({
     leafId: session.leafId,
-    blocks: ghosttyBlocks(session.leafId)?.controller?.diagnostics() ?? null,
     pty: session.pty?.id ?? null,
     visible: session.visible,
     focused: session.focused,
@@ -589,7 +563,6 @@ function initializeSession(session: GhosttySession): Promise<void> {
         session.surface?.dispose();
         session.surface = null;
         session.surfaceOptions = null;
-        ghosttyBlocks(session.leafId)?.detach();
         session.model?.dispose();
         session.model = null;
         session.writer.clear();
@@ -680,10 +653,6 @@ async function initializeSessionGeneration(
     onReply: (bytes) => session.writer.enqueue(bytes),
     onEvent: (event) => {
       semanticEvents.handle(event);
-      ghosttyBlocks(session.leafId)?.controller?.handle(
-        event,
-        session.lastCwd ?? session.initialCwd ?? "",
-      );
     },
   });
   if (session.disposed || generation !== session.generation) {
@@ -693,12 +662,7 @@ async function initializeSessionGeneration(
   mark("modelReadyMs");
   session.model = model;
   session.callbacks.onModel?.(model);
-  await ghosttyBlocks(session.leafId)?.attach(model, () =>
-    session.surface?.requestFrame(),
-  );
   if (!alive()) {
-    if (ghosttyBlocks(session.leafId)?.model === model)
-      ghosttyBlocks(session.leafId)?.detach();
     model.dispose();
     return;
   }
@@ -713,7 +677,6 @@ async function initializeSessionGeneration(
       session.ptyResize.schedule(cols, rows);
     },
     onFirstFrame: () => mark("firstFrameMs"),
-    onFrame: () => ghosttyBlocks(session.leafId)?.present(),
     onRequestFocus: () => focusGhosttySession(session.leafId),
     onOpenLink: (uri: string) => {
       void openExternalUrl(uri, () => focusGhosttySession(session.leafId));
@@ -806,8 +769,6 @@ async function initializeSessionGeneration(
         if (!session.disposed && generation === session.generation) {
           mark("firstOutputMs");
           model.write(bytes);
-          ghosttyBlocks(session.leafId)?.changed();
-          applyBlockInputMode(session);
         }
       },
       onExit: (code) => {
@@ -819,7 +780,6 @@ async function initializeSessionGeneration(
       },
     },
     session.initialCwd,
-    !!ghosttyBlocks(session.leafId),
     preferences.terminalShell || undefined,
     session.leafId,
   );
@@ -844,12 +804,6 @@ function createGhosttyInput(
   model: GhosttyTerminalModelApi,
   surface: GhosttySurface,
 ): GhosttyInputController {
-  const insertPromptText = (text: string): boolean => {
-    const blocks = ghosttyBlocks(session.leafId);
-    if (blocks?.getMode() !== "prompt" || !blocks.paste) return false;
-    blocks.paste(text);
-    return true;
-  };
   return new GhosttyInputController({
     model,
     input: surface.inputElement(),
@@ -858,22 +812,7 @@ function createGhosttyInput(
       width: surface.cellSize().width,
       height: surface.cellSize().height,
     }),
-    onData: (bytes) => {
-      if (
-        ghosttyBlocks(session.leafId)?.getMode() === "prompt" &&
-        !(bytes.length === 1 && bytes[0] === 3)
-      )
-        return;
-      session.writer.enqueue(bytes);
-    },
-    onKeyDown: (event) => {
-      const blocks = ghosttyBlocks(session.leafId);
-      return (
-        blocks?.getMode() === "prompt" && (blocks.keyDown?.(event) ?? false)
-      );
-    },
-    onText: insertPromptText,
-    onPaste: insertPromptText,
+    onData: (bytes) => session.writer.enqueue(bytes),
     onCopy: () => {
       const text = surface.getSelection();
       if (!text) return false;
@@ -885,44 +824,7 @@ function createGhosttyInput(
 
 export function focusGhosttySession(leafId: number): void {
   const session = sessions.get(leafId);
-  if (session) focusSessionSurface(session, session.surface);
-}
-
-function focusSessionSurface(
-  session: GhosttySession,
-  surface: GhosttySurface | null,
-): void {
-  const blocks = ghosttyBlocks(session.leafId);
-  if (blocks?.getMode() === "prompt" && blocks.focus) blocks.focus();
-  else surface?.focus();
-}
-
-function applyBlockInputMode(
-  session: GhosttySession,
-  surface = session.surface,
-): void {
-  const input = surface?.inputElement();
-  const blocks = ghosttyBlocks(session.leafId);
-  if (!input || !blocks) return;
-  const prompt = blocks.getMode() === "prompt";
-  const changed =
-    input.getAttribute("data-terax-block-prompt") !== String(prompt);
-  if (!changed) return;
-  input.setAttribute("data-terax-block-prompt", String(prompt));
-  surface?.setCursorEnabled(!prompt);
-  if (session.visible && session.focused) focusSessionSurface(session, surface);
-}
-
-export function ghosttyBlockGeometry(
-  leafId: number,
-): { top: number; height: number } | null {
-  const surface = sessions.get(leafId)?.surface;
-  return surface
-    ? {
-        top: surface.eventTarget().getBoundingClientRect().top,
-        height: surface.cellSize().height,
-      }
-    : null;
+  if (session) session.surface?.focus();
 }
 
 function attachGhosttySurface(
@@ -933,8 +835,7 @@ function attachGhosttySurface(
   surface.attach(session.container);
   surface.setVisible(true);
   surface.setFocused(session.focused);
-  applyBlockInputMode(session, surface);
-  if (session.focused) focusSessionSurface(session, surface);
+  if (session.focused) surface.focus();
 }
 
 function createWebGlFallbackSurface(
@@ -1127,7 +1028,6 @@ async function updateSessionFont(
     return;
   }
   session.surface.setFontMetrics(metrics);
-  ghosttyBlocks(session.leafId)?.changed();
   if (session.surfaceOptions)
     session.surfaceOptions = { ...session.surfaceOptions, metrics };
 }

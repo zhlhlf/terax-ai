@@ -44,19 +44,15 @@ const GROUP_LABEL_KEY: Record<
   | "palette.group.spaces"
   | "palette.group.tabs"
   | "palette.group.panes"
-  | "palette.group.git"
   | "palette.group.search"
   | "palette.group.view"
-  | "palette.group.ai"
 > = {
   General: "palette.group.general",
   Spaces: "palette.group.spaces",
   Tabs: "palette.group.tabs",
   Panes: "palette.group.panes",
-  Git: "palette.group.git",
   Search: "palette.group.search",
   View: "palette.group.view",
-  AI: "palette.group.ai",
 };
 
 type Props = {

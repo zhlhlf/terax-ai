@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    outputs:
+      updater_signing: ${{ steps.updater-signing.outputs.enabled }}
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +96,19 @@ jobs:
           TERAX_CLI_TARGET: ${{ matrix.rust-target }}
         run: pnpm build:cli
 
+      - id: updater-signing
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$TAURI_SIGNING_PRIVATE_KEY" && -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Updater signing secrets are not configured; updater artifacts will be skipped."
+          fi
+
       - name: Write Apple API key to disk
         if: startsWith(matrix.platform, 'macos')
         shell: bash
@@ -127,7 +142,7 @@ jobs:
           fi
 
       - id: tauri
-        if: matrix.platform != 'macos-latest' || steps.macos-signing.outputs.enabled == 'true'
+        if: steps.updater-signing.outputs.enabled == 'true' && (matrix.platform != 'macos-latest' || steps.macos-signing.outputs.enabled == 'true')
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -150,15 +165,13 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      - id: tauri-unsigned-macos
-        if: matrix.platform == 'macos-latest' && steps.macos-signing.outputs.enabled != 'true'
+      - id: tauri-without-updater
+        if: steps.updater-signing.outputs.enabled != 'true'
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TERAX_CLI_TARGET: ${{ matrix.rust-target }}
 
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: "-"
 
         with:
@@ -167,7 +180,7 @@ jobs:
           releaseBody: "See the assets to download and install. Auto-update is built in."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       # Strip the bundled libwayland-* libs from the AppImage so it loads the
       # host copies at runtime. The Ubuntu 22.04 build host ships libwayland
@@ -181,7 +194,7 @@ jobs:
       # patch-appimage-updater job after all matrix legs finish, so a parallel
       # macOS/Windows upload cannot clobber the combined latest.json.
       - name: Fix AppImage wayland libs and re-sign
-        if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -246,7 +259,7 @@ jobs:
       # patch-updater-manifest job, after every matrix leg has merged, so a
       # parallel macOS/Linux upload cannot clobber the Windows signatures.
       - name: Stage Windows installers for SignPath
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -264,7 +277,7 @@ jobs:
 
       - name: Upload unsigned Windows artifact
         id: upload-windows
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: windows-unsigned
@@ -275,7 +288,7 @@ jobs:
       # The default wait timeout is 600s; bumped so the job survives the time
       # it takes to review and approve the request during a release.
       - name: Submit Windows installers to SignPath
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
         uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -289,7 +302,7 @@ jobs:
           output-artifact-directory: 'signed'
 
       - name: Re-sign updater and upload signed Windows installers
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -325,7 +338,7 @@ jobs:
   # regenerated over the Authenticode-signed installers.
   patch-updater-manifest:
     needs: publish-tauri
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && needs.publish-tauri.outputs.updater_signing == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -45,7 +45,7 @@ fn set_backdrop(window: &tauri::Window, enabled: bool) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())
     } else {
-        clear_vibrancy(window).map_err(|e| e.to_string())
+        clear_vibrancy(window).map(|_| ()).map_err(|e| e.to_string())
     }
 }
 

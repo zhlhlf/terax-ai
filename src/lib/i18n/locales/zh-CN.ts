@@ -88,7 +88,7 @@ export const zhCN: Record<keyof typeof en, string> = {
     "命令仍在运行时，关闭终端标签页或退出前先询问。未保存的编辑器改动始终会确认。",
   "settings.general.startup": "启动",
   "settings.general.autostart.title": "登录时启动",
-  "settings.general.autostart.description": "登录系统时自动打开 Terax。",
+  "settings.general.autostart.description": "登录系统时自动打开 Termax。",
   "settings.general.restoreWindow.title": "恢复窗口位置与大小",
   "settings.general.restoreWindow.description":
     "在下次启动时把主窗口恢复到上次的位置。",
@@ -227,7 +227,7 @@ export const zhCN: Record<keyof typeof en, string> = {
   "settings.lsp.field.rootMarkers": "根标记",
   "settings.lsp.addServer": "添加服务器",
   "settings.lsp.install.title": "安装 {name} 语言服务器",
-  "settings.lsp.install.descriptionPre": "Terax 在 PATH 中未找到",
+  "settings.lsp.install.descriptionPre": "Termax 在 PATH 中未找到",
   "settings.lsp.install.descriptionPost":
     "。安装后点击重新检测，即可启用该语言服务器。",
   "settings.lsp.install.manual":
@@ -295,8 +295,8 @@ export const zhCN: Record<keyof typeof en, string> = {
   // ── 更新器 ────────────────────────────────────────────────────────────
   "updater.ready.title": "更新已就绪",
   "updater.downloading.title": "正在下载更新…",
-  "updater.available.title": "Terax v{version} 可用",
-  "updater.ready.body": "重启 Terax 以完成安装。",
+  "updater.available.title": "Termax v{version} 可用",
+  "updater.ready.body": "重启 Termax 以完成安装。",
   "updater.downloading.progress": "{percent}%（{size}）",
   "updater.manual.body":
     "你当前为 v{current}。选择你的发行版并运行命令，或从 GitHub 获取安装包。",
@@ -529,7 +529,7 @@ export const zhCN: Record<keyof typeof en, string> = {
     "另一个标签页中有进程正在运行。关闭将终止它。仍要关闭吗？",
   "app.close.many.busyOtherMany":
     "其他标签页中有 {count} 个进程正在运行。关闭将终止它们。仍要关闭吗？",
-  "app.close.quit.title": "退出 Terax？",
+  "app.close.quit.title": "退出 Termax？",
   "app.close.app.dirtyOne": "1 个文件有未保存的更改",
   "app.close.app.dirtyMany": "{count} 个文件有未保存的更改",
   "app.close.app.both":

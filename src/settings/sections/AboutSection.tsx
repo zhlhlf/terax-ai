@@ -9,8 +9,8 @@ import { arch, platform } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
 import { SectionHeader } from "../components/SectionHeader";
 
-const REPO_URL = "https://github.com/zhlhlf/terax-ai";
-const WEBSITE = "https://terax.app";
+const REPO_URL = "https://github.com/zhlhlf/termax";
+const WEBSITE = "https://termax.app";
 
 const PLATFORM_LABEL: Record<string, string> = {
   macos: "macOS",
@@ -24,7 +24,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 export function AboutSection() {
   const t = useT();
   const [version, setVersion] = useState("");
-  const [name, setName] = useState("Terax");
+  const [name, setName] = useState("Termax");
   const [build, setBuild] = useState("");
   const { status, check, install } = useUpdater({ autoCheck: false });
   const checking = status.kind === "checking";
@@ -113,7 +113,7 @@ export function AboutSection() {
             className="inline-flex items-center gap-1.5 rounded-md text-[12px] underline-offset-2 hover:text-foreground hover:underline"
           >
             <HugeiconsIcon icon={GithubIcon} size={12} strokeWidth={1.75} />
-            zhlhlf/terax-ai
+            zhlhlf/termax
           </button>
         </dd>
         <dt className="text-muted-foreground">{t("settings.about.website")}</dt>
@@ -124,7 +124,7 @@ export function AboutSection() {
             className="inline-flex items-center gap-1.5 rounded-md text-[12px] underline-offset-2 hover:text-foreground hover:underline"
           >
             <HugeiconsIcon icon={Globe02Icon} size={12} strokeWidth={1.75} />
-            terax.app
+            termax.app
           </button>
         </dd>
       </dl>

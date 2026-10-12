@@ -85,7 +85,7 @@ export const en = {
   "settings.general.startup": "Startup",
   "settings.general.autostart.title": "Launch at login",
   "settings.general.autostart.description":
-    "Open Terax automatically when you sign in.",
+    "Open Termax automatically when you sign in.",
   "settings.general.restoreWindow.title": "Restore window position & size",
   "settings.general.restoreWindow.description":
     "Reopen the main window where you left it. Applies on next launch.",
@@ -227,7 +227,7 @@ export const en = {
   "settings.lsp.field.rootMarkers": "Root markers",
   "settings.lsp.addServer": "Add server",
   "settings.lsp.install.title": "Install {name} language server",
-  "settings.lsp.install.descriptionPre": "Terax could not find",
+  "settings.lsp.install.descriptionPre": "Termax could not find",
   "settings.lsp.install.descriptionPost":
     "on your PATH. Install it, then check again to enable this language server.",
   "settings.lsp.install.manual":
@@ -293,8 +293,8 @@ export const en = {
   // ── Updater ───────────────────────────────────────────────────────────
   "updater.ready.title": "Update ready",
   "updater.downloading.title": "Downloading update…",
-  "updater.available.title": "Terax v{version} is available",
-  "updater.ready.body": "Restart Terax to finish installing.",
+  "updater.available.title": "Termax v{version} is available",
+  "updater.ready.body": "Restart Termax to finish installing.",
   "updater.downloading.progress": "{percent}% ({size})",
   "updater.manual.body":
     "You're on v{current}. Pick your distro and run the command, or grab the package from GitHub.",
@@ -532,7 +532,7 @@ export const en = {
     "A process is running in another tab. Closing will terminate it. Close anyway?",
   "app.close.many.busyOtherMany":
     "{count} processes are running in other tabs. Closing will terminate them. Close anyway?",
-  "app.close.quit.title": "Quit Terax?",
+  "app.close.quit.title": "Quit Termax?",
   "app.close.app.dirtyOne": "1 file has unsaved changes",
   "app.close.app.dirtyMany": "{count} files have unsaved changes",
   "app.close.app.both":

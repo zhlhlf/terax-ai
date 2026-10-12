@@ -14,7 +14,6 @@ import { CommandPalette, createCommandItems } from "@/modules/command-palette";
 import { useControlBridge } from "@/modules/control";
 import {
   type EditorPaneHandle,
-  NewEditorDialog,
   useApplyEditorFontSize,
   useEditorFileSync,
 } from "@/modules/editor";
@@ -73,7 +72,6 @@ import {
   AppAlphaBridge,
   ThemeProvider,
   useThemeFileEditing,
-  WindowVibrancyBridge,
 } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
 import {
@@ -117,7 +115,6 @@ export default function App() {
     markBooted,
     setActiveSpaceForNewTabs,
     newTab,
-    newPrivateTab,
     openFileTab,
     pinTab,
     newPreviewTab,
@@ -275,7 +272,6 @@ export default function App() {
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
 
-  const [newEditorOpen, setNewEditorOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteInitialMode, setPaletteInitialMode] = useState<
     "commands" | "content"
@@ -460,10 +456,6 @@ export default function App() {
     newTab(inheritedCwdForNewTab());
   }, [newTab, inheritedCwdForNewTab]);
 
-  const openNewPrivateTab = useCallback(() => {
-    newPrivateTab(inheritedCwdForNewTab());
-  }, [newPrivateTab, inheritedCwdForNewTab]);
-
   const sendCd = useCallback(
     (path: string) => {
       if (activeLeafId === null) return;
@@ -638,9 +630,7 @@ export default function App() {
       "commandPalette.open": () => openCommandPalette("commands"),
       "commandPalette.content": () => openCommandPalette("content"),
       "tab.new": openNewTab,
-      "tab.newPrivate": openNewPrivateTab,
       "tab.newPreview": () => openPreviewTab(""),
-      "tab.newEditor": () => setNewEditorOpen(true),
       "tab.close": handleCloseTabOrPane,
       "tab.next": () => stepSwitcher(1),
       "tab.prev": () => stepSwitcher(-1),
@@ -691,7 +681,6 @@ export default function App() {
       cycleSpace,
       handleCloseTabOrPane,
       openNewTab,
-      openNewPrivateTab,
       openPreviewTab,
       activeSpaceId,
       selectByIndex,
@@ -947,8 +936,6 @@ export default function App() {
             explorerRoot,
             home,
             openNewTab,
-            openNewPrivate: openNewPrivateTab,
-            openNewEditor: () => setNewEditorOpen(true),
             openNewPreview: () => openPreviewTab(""),
             closeActiveTabOrPane: handleCloseTabOrPane,
             splitPaneRight: () => splitActivePaneInActiveTab("row"),
@@ -974,7 +961,6 @@ export default function App() {
       explorerRoot,
       home,
       openNewTab,
-      openNewPrivateTab,
       openPreviewTab,
       handleCloseTabOrPane,
       splitActivePaneInActiveTab,
@@ -1063,11 +1049,9 @@ export default function App() {
             <Header
               tabs={spaceTabs}
               activeId={activeId}
-              onSelect={setActiveId}
-              onNew={openNewTab}
-              onNewPrivate={openNewPrivateTab}
-              onNewPreview={() => openPreviewTab("")}
-              onNewEditor={() => setNewEditorOpen(true)}
+            onSelect={setActiveId}
+            onNew={openNewTab}
+            onNewPreview={() => openPreviewTab("")}
               onClose={handleClose}
               onCloseTabsToRight={handleCloseTabsToRight}
               onCloseOtherTabs={handleCloseOtherTabs}
@@ -1168,13 +1152,9 @@ export default function App() {
               home={home}
               onCd={sendCd}
               onWorkspaceChange={handleWorkspaceChange}
-              privateActive={
-                activeTab?.kind === "terminal" && activeTab.private === true
-              }
             />
           )}
 
-          <WindowVibrancyBridge />
           <AppAlphaBridge />
 
           <Toaster position="bottom-right" />
@@ -1192,13 +1172,6 @@ export default function App() {
             workspaceRoot={explorerRoot}
             onOpenContentHit={openContentHit}
             insertCommand={insertHistoryCommand}
-          />
-
-          <NewEditorDialog
-            open={newEditorOpen}
-            onOpenChange={setNewEditorOpen}
-            rootPath={explorerRoot ?? home}
-            onCreated={(path) => openFileTab(path)}
           />
 
           <UpdaterDialog />

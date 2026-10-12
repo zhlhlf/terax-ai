@@ -144,16 +144,9 @@ export const en = {
   "settings.themes.import": "Import .terax-theme",
   "settings.themes.editTheme": "Edit {name}",
   "settings.themes.removeTheme": "Remove {name}",
-  "settings.themes.mica.title": "Mica background",
-  "settings.themes.mica.description":
-    "Blend the header, status bar and gutters into the desktop wallpaper. Windows 11 only.",
-  "settings.themes.mica.force.description":
-    "Mica on this Windows build blends into the wallpaper but is composited over the whole window, which hides the rounded corners. Windows 11 22523 or newer renders it properly.",
   "settings.themes.vibrancy.title": "Window vibrancy",
   "settings.themes.vibrancy.description":
     "Frost the header, status bar and gutters over what is behind the window. Panes stay solid.",
-  "settings.themes.mica.unsupported":
-    "Mica is off on this Windows build (11 21H2). Turn it on under your own judgement: the backdrop covers the rounded corners and border.",
   "settings.themes.editorTheme": "Editor theme",
   "settings.themes.editorTheme.description":
     "Syntax colors for the code editor. Auto follows the app theme.",
@@ -250,9 +243,7 @@ export const en = {
   "shortcut.commandPalette.content": "Find in files",
   "shortcut.settings.open": "Open settings",
   "shortcut.tab.new": "New tab",
-  "shortcut.tab.newPrivate": "New private terminal",
   "shortcut.tab.newPreview": "New web preview",
-  "shortcut.tab.newEditor": "New editor tab",
   "shortcut.tab.close": "Close tab or pane",
   "shortcut.pane.splitRight": "Split pane right",
   "shortcut.pane.splitDown": "Split pane down",
@@ -329,9 +320,6 @@ export const en = {
   // ── Status bar ────────────────────────────────────────────────────────
   "statusbar.noDirectory": "no directory",
   "statusbar.home": "Home",
-  "statusbar.private.label": "Private: hidden from AI",
-  "statusbar.private.tooltip":
-    "AI can't see this terminal's output. Use it for secrets, SSH, or anything you don't want sent to the model.",
   "statusbar.breadcrumb.showHidden": "Show hidden folders",
   "statusbar.cwd.loading": "Loading…",
   "statusbar.cwd.noSubfolders": "No subfolders",
@@ -358,11 +346,8 @@ export const en = {
   "tab.showFewerLanguages": "↑ Fewer languages",
   "tab.showAllLanguages": "↓ All languages",
   "tab.newMenu.terminal": "Terminal",
-  "tab.newMenu.privacy": "Privacy",
-  "tab.newMenu.editor": "Editor",
   "tab.newMenu.preview": "Preview",
   "tab.title.shell": "shell",
-  "tab.title.private": "private",
   "tab.title.preview": "preview",
 
   // ── Explorer ──────────────────────────────────────────────────────────
@@ -485,8 +470,6 @@ export const en = {
   "palette.cmd.newSpace": "New Space",
   "palette.cmd.switchSpace": "Switch to {name}",
   "palette.cmd.newTerminal": "New terminal",
-  "palette.cmd.newPrivateTerminal": "New private terminal",
-  "palette.cmd.newEditorTab": "New editor tab",
   "palette.cmd.newWebPreview": "New web preview",
   "palette.cmd.closeTabOrPane": "Close tab or pane",
   "palette.cmd.splitPaneRight": "Split pane right",

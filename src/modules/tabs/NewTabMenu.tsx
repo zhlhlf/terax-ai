@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,29 +12,47 @@ import { fmtShortcut, MOD_KEY } from "@/lib/platform";
 import {
   ComputerTerminal02Icon,
   Globe02Icon,
-  IncognitoIcon,
-  PencilEdit02Icon,
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 type Props = {
   onNew: () => void;
-  onNewPrivate: () => void;
   onNewPreview: () => void;
-  onNewEditor: () => void;
 };
+
+const MENU_HOST_SELECTOR =
+  '[data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-trigger"]';
 
 export function NewTabMenu({
   onNew,
-  onNewPrivate,
   onNewPreview,
-  onNewEditor,
 }: Props) {
   const t = useT();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const dismiss = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(MENU_HOST_SELECTOR)) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", dismiss, {
+      capture: true,
+      passive: true,
+    });
+    return () => {
+      document.removeEventListener("pointerdown", dismiss, { capture: true });
+    };
+  }, [open]);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -53,20 +73,6 @@ export function NewTabMenu({
           <span className="flex-1">{t("tab.newMenu.terminal")}</span>
           <span className="text-xs text-muted-foreground">
             {fmtShortcut(MOD_KEY, "T")}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onNewPrivate}>
-          <HugeiconsIcon icon={IncognitoIcon} size={14} strokeWidth={1.75} />
-          <span className="flex-1">{t("tab.newMenu.privacy")}</span>
-          <span className="text-xs text-muted-foreground">
-            {fmtShortcut(MOD_KEY, "R")}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onNewEditor}>
-          <HugeiconsIcon icon={PencilEdit02Icon} size={14} strokeWidth={1.75} />
-          <span className="flex-1">{t("tab.newMenu.editor")}</span>
-          <span className="text-xs text-muted-foreground">
-            {fmtShortcut(MOD_KEY, "E")}
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onNewPreview}>

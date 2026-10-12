@@ -176,7 +176,6 @@ export class TerminalSelectionController {
     const point = this.pointFromEvent(event);
     if (!point) return;
     event.preventDefault();
-    event.stopPropagation();
     this.pointerId = event.pointerId;
     this.options.target.setPointerCapture(event.pointerId);
     this.lastClientX = event.clientX;

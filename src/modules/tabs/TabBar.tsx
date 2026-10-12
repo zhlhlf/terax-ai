@@ -27,7 +27,6 @@ import {
   CancelCircleIcon,
   ComputerTerminal02Icon,
   Globe02Icon,
-  IncognitoIcon,
   PencilEdit02Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
@@ -49,9 +48,7 @@ type Props = {
   activeId: number;
   onSelect: (id: number) => void;
   onNew: () => void;
-  onNewPrivate: () => void;
   onNewPreview: () => void;
-  onNewEditor: () => void;
   onClose: (id: number) => void;
   /** Chrome-style: close every tab to the right of the given tab. */
   onCloseTabsToRight: (id: number) => void;
@@ -72,9 +69,7 @@ export function TabBar({
   activeId,
   onSelect,
   onNew,
-  onNewPrivate,
   onNewPreview,
-  onNewEditor,
   onClose,
   onCloseTabsToRight,
   onCloseOtherTabs,
@@ -576,9 +571,7 @@ export function TabBar({
         </Tabs>
         <NewTabMenu
           onNew={onNew}
-          onNewPrivate={onNewPrivate}
           onNewPreview={onNewPreview}
-          onNewEditor={onNewEditor}
         />
       </div>
     </div>
@@ -618,16 +611,6 @@ export function TabIcon({ tab }: { tab: Tab }) {
     return (
       <HugeiconsIcon
         icon={Globe02Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (tab.kind === "terminal" && tab.private) {
-    return (
-      <HugeiconsIcon
-        icon={IncognitoIcon}
         size={14}
         strokeWidth={2}
         className="shrink-0"

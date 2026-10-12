@@ -555,15 +555,15 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     this.assertLive();
     const cells = this.readBufferLine(point.line).cells;
     const column = clampInteger(point.column, 0, this.colsValue - 1);
-    const category = wordCategory(cells[column] ?? "");
+    const category = wordCategoryAt(cells, column);
     let start = column;
     let end = column;
-    while (start > 0 && wordCategory(cells[start - 1] ?? "") === category) {
+    while (start > 0 && wordCategoryAt(cells, start - 1) === category) {
       start -= 1;
     }
     while (
       end + 1 < this.colsValue &&
-      wordCategory(cells[end + 1] ?? "") === category
+      wordCategoryAt(cells, end + 1) === category
     ) {
       end += 1;
     }
@@ -1212,8 +1212,22 @@ function normalizeBufferSelection(selection: TerminalBufferSelection): {
 
 function wordCategory(value: string): "space" | "word" | "punctuation" {
   if (/\s/u.test(value)) return "space";
-  if (/^[\p{Letter}\p{Number}_-]$/u.test(value)) return "word";
+  if (/^[\p{Letter}\p{Number}_\-./:]$/u.test(value)) return "word";
   return "punctuation";
+}
+
+function wordCategoryAt(
+  cells: readonly string[],
+  column: number,
+): "space" | "word" | "punctuation" {
+  const value = cells[column] ?? "";
+  if (value !== "") return wordCategory(value);
+
+  // libghostty-vt represents the trailing half of a double-width CJK cell as
+  // an empty cell. It is part of the word, not a boundary between characters.
+  return column > 0 && wordCategory(cells[column - 1] ?? "") === "word"
+    ? "word"
+    : "punctuation";
 }
 
 function clampInteger(value: number, min: number, max: number): number {

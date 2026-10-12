@@ -145,7 +145,7 @@
   --terminal-foreground: var(--foreground);
   --terminal-cursor: var(--foreground);
   --terminal-cursor-accent: var(--background);
-  --terminal-selection: var(--accent);
+  --terminal-selection: rgba(255, 105, 180, 0.35);
   --terminal-ansi-black: #111111;
   --terminal-ansi-red: #c0392f;
   --terminal-ansi-green: #2f7d4f;
@@ -198,9 +198,9 @@
  * already declares, so built-in and user themes get the separation for free. */
 :root {
   --frame: color-mix(in oklab, var(--card) 97%, var(--foreground) 3%);
-  --pane-radius: calc(var(--radius) * 1.4);
+  --pane-radius: var(--window-radius);
   --pane-shadow: none;
-  --window-radius: 20px;
+  --window-radius: 25px;
 }
 .dark {
   --pane-shadow: inset 0 1px 0 oklch(1 0 0 / 0.035);
@@ -218,7 +218,7 @@
   overflow: hidden;
 }
 
-/* Window vibrancy (macOS NSVisualEffectView / Windows Mica). Only the frame
+/* Window vibrancy (macOS NSVisualEffectView). Only the frame
  * goes translucent: panes keep `--background` so terminal and editor text
  * stays on a solid, readable surface and the terminal canvas still matches its
  * container. Redefining `--frame` rather than layering an overlay means
@@ -248,21 +248,19 @@ html[data-chrome="borderless"],
 html[data-chrome="borderless"] body {
   background: transparent !important;
 }
-html[data-chrome="borderless"] #root {
+html[data-chrome="borderless"] #root,
+html[data-chrome="borderless"] #settings-root {
   height: 100%;
   border-radius: var(--window-radius);
   overflow: hidden;
   border: 1px solid var(--border);
-  background: var(--background);
-}
-html[data-chrome="borderless"] #settings-root {
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--background);
+  background: var(--frame);
 }
 html[data-chrome="borderless"] #root {
   background: var(--frame);
+}
+html[data-chrome="borderless"] #settings-root {
+  border: 0;
 }
 
 /* No background image: the shell paints a single translucent backdrop instead
@@ -279,6 +277,10 @@ html[data-chrome="borderless"] #root {
 html[data-app-alpha="on"] {
   --frame: rgb(from var(--background) r g b / var(--frame-alpha, 0.66));
 }
+html[data-app-alpha="on"],
+html[data-app-alpha="on"] body {
+  background: transparent;
+}
 html[data-app-alpha="on"] #root {
   background: transparent;
 }
@@ -287,6 +289,18 @@ html[data-app-alpha="on"] .terax-pane {
 }
 html[data-app-alpha="on"] #settings-root {
   background: var(--frame);
+}
+
+html[data-bg-image="on"],
+html[data-bg-image="on"] body {
+  background: transparent;
+}
+html[data-bg-image="on"] #root,
+html[data-bg-image="on"] #settings-root {
+  background: transparent;
+}
+html[data-bg-image="on"] #settings-root {
+  background: var(--background);
 }
 
 
@@ -555,4 +569,10 @@ html *::-webkit-scrollbar {
     animation: none;
     background-position: 0% center;
   }
+}
+
+.terax-glass {
+  background: color-mix(in srgb, var(--popover) 62%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
 }

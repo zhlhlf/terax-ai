@@ -1147,19 +1147,15 @@ export class WebGpuTerminalSurface
               ? SEARCH_ACTIVE_MATCH_BACKGROUND
               : SEARCH_MATCH_BACKGROUND;
         }
-        if (
-          selectionBounds &&
+        const selected =
+          selectionBounds !== null &&
           selectionBoundsContain(
             selectionBounds,
             viewportOriginLine + row,
             column,
-          )
-        ) {
-          background = blendPackedRgb(
-            background,
-            this.selectionColor,
-            this.theme.selection.alpha,
           );
+        if (selected) {
+          background = this.selectionColor;
         }
         const originX = column * cellWidth;
         const originY = row * cellHeight;
@@ -1182,9 +1178,11 @@ export class WebGpuTerminalSurface
           spanWidth,
           cellHeight,
           background,
-          // The default background paints nothing so the app backdrop shows
-          // through; selection, search hits and colored runs stay solid.
-          background === this.themeBackground ? 0 : 1,
+          selected
+            ? this.theme.selection.alpha
+            : background !== this.themeBackground
+              ? 1
+              : 0,
           cells.underlineColorPacked(index),
           foreground,
           cellFlags,
@@ -1388,26 +1386,6 @@ function createVertexBuffer(
     size,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
-}
-
-function blendPackedRgb(
-  background: number,
-  foreground: number,
-  alpha: number,
-): number {
-  const amount = Math.max(0, Math.min(1, alpha));
-  const inverse = 1 - amount;
-  const red = Math.round(
-    ((background >> 16) & 0xff) * inverse +
-      ((foreground >> 16) & 0xff) * amount,
-  );
-  const green = Math.round(
-    ((background >> 8) & 0xff) * inverse + ((foreground >> 8) & 0xff) * amount,
-  );
-  const blue = Math.round(
-    (background & 0xff) * inverse + (foreground & 0xff) * amount,
-  );
-  return (red << 16) | (green << 8) | blue;
 }
 
 function packRgb(color: Rgb): number {

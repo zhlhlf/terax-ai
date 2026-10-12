@@ -41,7 +41,6 @@ export type TerminalTab = TabBase & {
   paneTree: PaneNode;
   activeLeafId: number;
   /** AI agent cannot read buffer / context of this terminal. */
-  private?: boolean;
   /** User-set label that overrides the cwd-derived name. Survives cd. */
   customTitle?: string;
 };
@@ -583,26 +582,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     return tabId;
   }, []);
 
-  const newPrivateTab = useCallback((cwd?: string) => {
-    const tabId = nextIdRef.current++;
-    const leafId = nextIdRef.current++;
-    setTabs((t) => [
-      ...t,
-      {
-        id: tabId,
-        kind: "terminal",
-        spaceId: activeSpaceIdRef.current,
-        title: translate("tab.title.private"),
-        cwd,
-        paneTree: { kind: "leaf", id: leafId, cwd },
-        activeLeafId: leafId,
-        private: true,
-      },
-    ]);
-    setActiveId(tabId);
-    return tabId;
-  }, []);
-
   /**
    * Opens a file in an editor tab.
    *
@@ -1025,7 +1004,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     setActiveSpaceForNewTabs,
     setOverrideLanguage,
     newTab,
-    newPrivateTab,
     openFileTab,
     pinTab,
     newPreviewTab,

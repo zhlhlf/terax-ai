@@ -67,7 +67,7 @@ export function fontCss(
 
 export function readTerminalGpuTheme(): TerminalGpuTheme {
   const tokens = readTerminalTokens();
-  const selection = cssColorToRgba(tokens.selection);
+  const selection = cssColorToRgba("rgba(135, 206, 235, 0.3)");
   return {
     background: cssColorToRgb(tokens.background),
     foreground: cssColorToRgb(tokens.foreground),

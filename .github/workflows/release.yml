@@ -16,15 +16,19 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
+            rust-toolchain: stable
             args: --target aarch64-apple-darwin
             rust-target: aarch64-apple-darwin
           - platform: macos-latest
+            rust-toolchain: stable
             args: --target x86_64-apple-darwin
             rust-target: x86_64-apple-darwin
           - platform: ubuntu-22.04
+            rust-toolchain: stable
             args: ""
             rust-target: ""
           - platform: windows-latest
+            rust-toolchain: stable-x86_64-pc-windows-gnu
             args: --target x86_64-pc-windows-gnu
             rust-target: x86_64-pc-windows-gnu
 
@@ -74,6 +78,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ matrix.rust-toolchain }}
           targets: ${{ matrix.rust-target }}
 
       - uses: swatinem/rust-cache@v2
@@ -94,14 +99,37 @@ jobs:
           printf '%s' "$KEY_CONTENT" > "$HOME/private_keys/AuthKey.p8"
           echo "APPLE_API_KEY_PATH=$HOME/private_keys/AuthKey.p8" >> "$GITHUB_ENV"
 
+      - id: macos-signing
+        if: startsWith(matrix.platform, 'macos')
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [[ -n "$APPLE_CERTIFICATE" && -n "$APPLE_CERTIFICATE_PASSWORD" ]]; then
+            CERT_FILE=$(mktemp)
+            trap 'rm -f "$CERT_FILE"' EXIT
+            printf '%s' "$APPLE_CERTIFICATE" | openssl base64 -d -A > "$CERT_FILE"
+            if openssl pkcs12 -info -in "$CERT_FILE" \
+              -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -noout >/dev/null 2>&1; then
+              echo "enabled=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::warning::APPLE_CERTIFICATE is not a valid password-protected PKCS#12 bundle; building an unsigned macOS bundle."
+              echo "enabled=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - id: tauri
+        if: matrix.platform != 'macos-latest' || steps.macos-signing.outputs.enabled == 'true'
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TERAX_CLI_TARGET: ${{ matrix.rust-target }}
 
-          TAURI_SIGNING_PRIVATE_KEY: dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VHh4MTNiRExuUjlldGhuWFljWmMwVElmaTVtc0VGMDB0NkNpay9JVVovSUFBQkFBQUFBQUFBQUFBQUlBQUFBQWVjaTBGdU84R2Y1REZkQWt0bUE2TTF2c1VIM012ekZoSkFoMVZ3TW9lb0dlc2xPL0w0TmhGNFhsQU1HdEtwN1dldjIvVCtWWTVGTjNSYzVKU2VoNHhsdS9oejRWejNFbW11bExNZ2xIZ1RxMStvRXlYSngwSzZvVjNkQmo0NmpQSW9LWHhRSklnQ2M9Cg==
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: jczhl
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -116,6 +144,17 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - id: tauri-unsigned-macos
+        if: matrix.platform == 'macos-latest' && steps.macos-signing.outputs.enabled != 'true'
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TERAX_CLI_TARGET: ${{ matrix.rust-target }}
+
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: "-"
 
       # Strip the bundled libwayland-* libs from the AppImage so it loads the
       # host copies at runtime. The Ubuntu 22.04 build host ships libwayland
@@ -132,8 +171,8 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VHh4MTNiRExuUjlldGhuWFljWmMwVElmaTVtc0VGMDB0NkNpay9JVVovSUFBQkFBQUFBQUFBQUFBQUlBQUFBQWVjaTBGdU84R2Y1REZkQWt0bUE2TTF2c1VIM012ekZoSkFoMVZ3TW9lb0dlc2xPL0w0TmhGNFhsQU1HdEtwN1dldjIvVCtWWTVGTjNSYzVKU2VoNHhsdS9oejRWejNFbW11bExNZ2xIZ1RxMStvRXlYSngwSzZvVjNkQmo0NmpQSW9LWHhRSklnQ2M9Cg==
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: jczhl
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
 
@@ -241,8 +280,8 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VHh4MTNiRExuUjlldGhuWFljWmMwVElmaTVtc0VGMDB0NkNpay9JVVovSUFBQkFBQUFBQUFBQUFBQUlBQUFBQWVjaTBGdU84R2Y1REZkQWt0bUE2TTF2c1VIM012ekZoSkFoMVZ3TW9lb0dlc2xPL0w0TmhGNFhsQU1HdEtwN1dldjIvVCtWWTVGTjNSYzVKU2VoNHhsdS9oejRWejNFbW11bExNZ2xIZ1RxMStvRXlYSngwSzZvVjNkQmo0NmpQSW9LWHhRSklnQ2M9Cg==
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: jczhl
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = "Stop"
           $signedExe = "signed/terax-setup.exe"

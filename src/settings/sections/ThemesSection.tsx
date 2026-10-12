@@ -165,31 +165,17 @@ export function ThemesSection() {
         description={t("settings.themes.description")}
       />
 
-      <SettingRow
-        title={
-          backdrop === "mica" || backdrop === "windows-force"
-            ? t("settings.themes.mica.title")
-            : t("settings.themes.vibrancy.title")
-        }
-        description={
-          backdrop === "mica"
-            ? t("settings.themes.mica.description")
-            : backdrop === "windows-force"
-              ? t("settings.themes.mica.force.description")
-              : t("settings.themes.vibrancy.description")
-        }
-      >
-        <Switch
-          checked={windowVibrancy}
-          onCheckedChange={(v) => void setWindowVibrancy(v)}
-        />
-      </SettingRow>
-
-      {backdrop === "windows-force" && (
-        <p className="-mt-2 text-muted-foreground text-xs">
-          {t("settings.themes.mica.unsupported")}
-        </p>
-      )}
+      {backdrop === "vibrancy" ? (
+        <SettingRow
+          title={t("settings.themes.vibrancy.title")}
+          description={t("settings.themes.vibrancy.description")}
+        >
+          <Switch
+            checked={windowVibrancy}
+            onCheckedChange={(v) => void setWindowVibrancy(v)}
+          />
+        </SettingRow>
+      ) : null}
 
       <div
         role="presentation"

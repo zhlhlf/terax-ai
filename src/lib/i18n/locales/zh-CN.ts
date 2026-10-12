@@ -144,16 +144,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   "settings.themes.import": "导入 .terax-theme",
   "settings.themes.editTheme": "编辑 {name}",
   "settings.themes.removeTheme": "移除 {name}",
-  "settings.themes.mica.title": "Mica 背景",
-  "settings.themes.mica.description":
-    "让顶栏、状态栏和边槽与桌面壁纸融合。仅限 Windows 11。",
-  "settings.themes.mica.force.description":
-    "当前 Windows 版本上的 Mica 能与壁纸融合,但会覆盖整个窗口矩形,从而遮挡圆角。需要 Windows 11 22523 及以上才能正常显示。",
   "settings.themes.vibrancy.title": "窗口毛玻璃",
   "settings.themes.vibrancy.description":
     "让顶栏、状态栏和边槽呈现窗口后方的磨砂效果。面板保持不透明。",
-  "settings.themes.mica.unsupported":
-    "当前 Windows 版本(11 21H2)已默认关闭 Mica。你可以自行权衡后开启:该背书层会遮挡窗口圆角与边框。",
   "settings.themes.editorTheme": "编辑器主题",
   "settings.themes.editorTheme.description":
     "代码编辑器的语法配色。选「自动」会跟随应用主题。",
@@ -250,9 +243,7 @@ export const zhCN: Record<keyof typeof en, string> = {
   "shortcut.commandPalette.content": "在文件中查找",
   "shortcut.settings.open": "打开设置",
   "shortcut.tab.new": "新建标签页",
-  "shortcut.tab.newPrivate": "新建隐私终端",
   "shortcut.tab.newPreview": "新建网页预览",
-  "shortcut.tab.newEditor": "新建编辑器标签页",
   "shortcut.tab.close": "关闭标签页或面板",
   "shortcut.pane.splitRight": "向右拆分面板",
   "shortcut.pane.splitDown": "向下拆分面板",
@@ -331,9 +322,6 @@ export const zhCN: Record<keyof typeof en, string> = {
   // ── 状态栏 ────────────────────────────────────────────────────────────
   "statusbar.noDirectory": "无目录",
   "statusbar.home": "主目录",
-  "statusbar.private.label": "隐私：对 AI 隐藏",
-  "statusbar.private.tooltip":
-    "AI 无法看到此终端的输出。可用于密钥、SSH，或任何你不想发送到模型的内容。",
   "statusbar.breadcrumb.showHidden": "显示隐藏文件夹",
   "statusbar.cwd.loading": "正在加载…",
   "statusbar.cwd.noSubfolders": "无子文件夹",
@@ -360,11 +348,8 @@ export const zhCN: Record<keyof typeof en, string> = {
   "tab.showFewerLanguages": "↑ 收起语言",
   "tab.showAllLanguages": "↓ 全部语言",
   "tab.newMenu.terminal": "终端",
-  "tab.newMenu.privacy": "隐私",
-  "tab.newMenu.editor": "编辑器",
   "tab.newMenu.preview": "预览",
   "tab.title.shell": "shell",
-  "tab.title.private": "private",
   "tab.title.preview": "preview",
 
   // ── 文件浏览器 ────────────────────────────────────────────────────────
@@ -484,8 +469,6 @@ export const zhCN: Record<keyof typeof en, string> = {
   "palette.cmd.newSpace": "新建空间",
   "palette.cmd.switchSpace": "切换到 {name}",
   "palette.cmd.newTerminal": "新建终端",
-  "palette.cmd.newPrivateTerminal": "新建隐私终端",
-  "palette.cmd.newEditorTab": "新建编辑器标签页",
   "palette.cmd.newWebPreview": "新建网页预览",
   "palette.cmd.closeTabOrPane": "关闭标签页或窗格",
   "palette.cmd.splitPaneRight": "向右拆分窗格",

@@ -81,10 +81,6 @@ fn parse_launch_target() -> LaunchTarget {
     resolve_launch_target(entries)
 }
 
-const fn settings_always_on_top(is_macos: bool) -> bool {
-    !is_macos
-}
-
 const SETTINGS_WIDTH: f64 = 900.0;
 const SETTINGS_HEIGHT: f64 = 700.0;
 const SETTINGS_MIN_WIDTH: f64 = 820.0;
@@ -131,8 +127,6 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
     };
 
     if let Some(window) = app.get_webview_window("settings") {
-        #[cfg(not(target_os = "macos"))]
-        let _ = window.set_always_on_top(true);
         let _ = window.show();
         let _ = window.set_focus();
         if let Some(t) = tab.as_deref().filter(|s| !s.is_empty()) {
@@ -157,12 +151,10 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         .inner_size(settings_width, settings_height)
         .min_inner_size(SETTINGS_MIN_WIDTH, SETTINGS_MIN_HEIGHT)
         .resizable(true)
-        .visible(false)
-        .always_on_top(settings_always_on_top(cfg!(target_os = "macos")));
+        .visible(false);
 
     // A normal-level child stays above Terax but recedes with the app on macOS.
-    // Never combine the macOS parent with always_on_top; that breaks WebView
-    // compositing and can hide Settings behind the main window (#33, #957).
+    // macOS parenting controls app-relative stacking, not desktop always-on-top.
     let builder = if let Some(main) = app.get_webview_window("main") {
         builder.parent(&main).map_err(|e| e.to_string())?
     } else {
@@ -177,7 +169,10 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
     // On Linux/Windows we render our own titlebar, so drop native chrome
     // and make the window transparent.
     #[cfg(any(target_os = "linux", target_os = "windows"))]
-    let builder = builder.decorations(false).transparent(true);
+    let builder = builder
+        .decorations(false)
+        .transparent(true)
+        .shadow(false);
 
     let window = builder.build().map_err(|e| e.to_string())?;
 
@@ -413,7 +408,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod launch_target_tests {
-    use super::{resolve_launch_target, settings_always_on_top, LaunchEntry, LaunchTarget};
+    use super::{resolve_launch_target, LaunchEntry, LaunchTarget};
     use std::path::PathBuf;
 
     #[test]
@@ -460,11 +455,6 @@ mod launch_target_tests {
         assert_eq!(out.files, vec!["/other/x.rs".to_string()]);
     }
 
-    #[test]
-    fn settings_float_only_outside_macos() {
-        assert!(!settings_always_on_top(true));
-        assert!(settings_always_on_top(false));
-    }
 }
 
 #[cfg(test)]

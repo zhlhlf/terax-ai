@@ -4,10 +4,8 @@ import { leafIds } from "@/modules/terminal";
 import {
   Cancel01Icon,
   DashboardSquare01Icon,
-  FileEditIcon,
   FileSearchIcon,
   Globe02Icon,
-  IncognitoIcon,
   KeyboardIcon,
   LayoutTwoColumnIcon,
   LayoutTwoRowIcon,
@@ -36,8 +34,6 @@ export type CommandPaletteActionContext = {
   explorerRoot: string | null;
   home: string | null;
   openNewTab: () => void;
-  openNewPrivate: () => void;
-  openNewEditor: () => void;
   openNewPreview: () => void;
   closeActiveTabOrPane: () => void;
   splitPaneRight: () => void;
@@ -66,7 +62,6 @@ export function createCommandItems(
     ? leafIds(activeTerminalTab.paneTree).length
     : 0;
   const onlyOneTab = ctx.tabs.length < 2;
-  const noWorkspaceRoot = !ctx.explorerRoot && !ctx.home;
   const splitDisabled =
     !activeTerminalTab
       ? "No terminal tab"
@@ -158,30 +153,6 @@ export function createCommandItems(
       icon: TerminalIcon,
       shortcutId: "tab.new",
       run: ctx.openNewTab,
-    },
-    {
-      id: "tab.newPrivate",
-      title: "New private terminal",
-      titleKey: "palette.cmd.newPrivateTerminal",
-      group: "Tabs",
-      keywords: ["privacy", "private", "incognito", "hidden from ai"],
-      icon: IncognitoIcon,
-      shortcutId: "tab.newPrivate",
-      run: ctx.openNewPrivate,
-    },
-    {
-      id: "tab.newEditor",
-      title: "New editor tab",
-      titleKey: "palette.cmd.newEditorTab",
-      group: "Tabs",
-      keywords: ["file", "editor", "create"],
-      icon: FileEditIcon,
-      shortcutId: "tab.newEditor",
-      disabledReason: noWorkspaceRoot ? "No workspace root" : undefined,
-      disabledReasonKey: noWorkspaceRoot
-        ? "palette.cmd.reason.noWorkspaceRoot"
-        : undefined,
-      run: ctx.openNewEditor,
     },
     {
       id: "tab.newPreview",

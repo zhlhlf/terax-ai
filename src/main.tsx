@@ -3,6 +3,7 @@ import "./styles/globals.css";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import ReactDOM from "react-dom/client";
+import { usePreferencesStore } from "@/modules/settings/preferences";
 import App from "./app/App";
 import { initLaunchDir } from "./lib/launchDir";
 import { USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
@@ -24,6 +25,7 @@ await invoke("pty_close_all").catch(() => {});
 
 // Seed before first paint so default tab mounts at target cwd (no flicker).
 await initLaunchDir();
+void usePreferencesStore.getState().init().catch(console.error);
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <App />,

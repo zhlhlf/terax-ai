@@ -282,6 +282,7 @@ function dragFixture(realModel?: GhosttyTerminalModelApi) {
     controller,
     model,
     onChange,
+    target: target as EventTarget,
     tracked: () => tracked,
     pointer: (
       type: string,
@@ -308,6 +309,25 @@ function dragFixture(realModel?: GhosttyTerminalModelApi) {
 }
 
 describe("terminal multi-click selection", () => {
+  it("allows pointerdown to bubble so overlays can dismiss outside clicks", () => {
+    const fixture = dragFixture();
+    const event = Object.assign(new Event("pointerdown", { bubbles: true }), {
+      pointerId: 1,
+      button: 0,
+      detail: 1,
+      shiftKey: false,
+      altKey: false,
+      clientX: 10,
+      clientY: 10,
+    });
+    const stopPropagation = vi.spyOn(event, "stopPropagation");
+
+    fixture.target.dispatchEvent(event);
+
+    expect(stopPropagation).not.toHaveBeenCalled();
+    fixture.controller.dispose();
+  });
+
   it("selects the word under a double click", async () => {
     const bytes = await readFile(
       new URL(
@@ -329,6 +349,61 @@ describe("terminal multi-click selection", () => {
       fixture.pointer("pointerdown", 55, 10, 1150);
       fixture.pointer("pointerup", 55, 10, 1150);
       expect(fixture.controller.text()).toBe("src-tauri");
+    } finally {
+      fixture.controller.dispose();
+      model.dispose();
+    }
+  });
+
+  it("selects mixed CJK and ASCII through wide-cell padding", async () => {
+    const bytes = await readFile(
+      new URL(
+        "../../../../../packages/ghostty-core/adapted/ghostty-vt.wasm",
+        import.meta.url,
+      ),
+    );
+    const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+    const model = new AdaptedGhosttyTerminalModel(core, {
+      backend: "ghostty-webgpu",
+      cols: 80,
+      rows: 24,
+    });
+    const fixture = dragFixture(model);
+    try {
+      model.write(new TextEncoder().encode("中文abc中文"));
+      fixture.pointer("pointerdown", 45, 10, 1000);
+      fixture.pointer("pointerup", 45, 10, 1000);
+      fixture.pointer("pointerdown", 45, 10, 1150);
+      fixture.pointer("pointerup", 45, 10, 1150);
+      expect(fixture.controller.text()).toBe("中文abc中文");
+    } finally {
+      fixture.controller.dispose();
+      model.dispose();
+    }
+  });
+
+  it("extends a double-click selection by word while dragging", async () => {
+    const bytes = await readFile(
+      new URL(
+        "../../../../../packages/ghostty-core/adapted/ghostty-vt.wasm",
+        import.meta.url,
+      ),
+    );
+    const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+    const model = new AdaptedGhosttyTerminalModel(core, {
+      backend: "ghostty-webgpu",
+      cols: 80,
+      rows: 24,
+    });
+    const fixture = dragFixture(model);
+    try {
+      model.write(new TextEncoder().encode("./src/foo:bar baz"));
+      fixture.pointer("pointerdown", 25, 10, 1000);
+      fixture.pointer("pointerup", 25, 10, 1000);
+      fixture.pointer("pointerdown", 25, 10, 1150);
+      fixture.pointer("pointermove", 65, 10, 1200);
+      fixture.pointer("pointerup", 65, 10, 1250);
+      expect(fixture.controller.text()).toBe("./src/foo:bar");
     } finally {
       fixture.controller.dispose();
       model.dispose();

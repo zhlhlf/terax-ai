@@ -29,9 +29,7 @@ type Props = {
   activeId: number;
   onSelect: (id: number) => void;
   onNew: () => void;
-  onNewPrivate: () => void;
   onNewPreview: () => void;
-  onNewEditor: () => void;
   onClose: (id: number) => void;
   /** Chrome-style: close every tab to the right of the given tab. */
   onCloseTabsToRight: (id: number) => void;
@@ -59,9 +57,7 @@ export function Header({
   activeId,
   onSelect,
   onNew,
-  onNewPrivate,
   onNewPreview,
-  onNewEditor,
   onClose,
   onCloseTabsToRight,
   onCloseOtherTabs,
@@ -159,9 +155,7 @@ export function Header({
           activeId={activeId}
           onSelect={onSelect}
           onNew={onNew}
-          onNewPrivate={onNewPrivate}
           onNewPreview={onNewPreview}
-          onNewEditor={onNewEditor}
           onClose={onClose}
           onCloseTabsToRight={onCloseTabsToRight}
           onCloseOtherTabs={onCloseOtherTabs}

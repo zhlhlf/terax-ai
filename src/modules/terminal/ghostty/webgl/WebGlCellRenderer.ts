@@ -107,6 +107,7 @@ export class WebGlCellRenderer {
   private atlas: WebGlGlyphAtlas | null = null;
   private glyphAttributes = new Float32Array(0);
   private backgrounds = new Uint32Array(0);
+  private backgroundAlphas = new Uint8Array(0);
   private foregrounds = new Uint32Array(0);
   private underlineColors = new Uint32Array(0);
   private flags = new Uint8Array(0);
@@ -469,6 +470,7 @@ export class WebGlCellRenderer {
       let rowHasBlinkingCell = false;
       let rowRectanglesChanged = false;
       let previousBackground = this.packRgb(this.profile.theme.background);
+      let previousBackgroundAlpha = 0;
       for (let column = 0; column < this.cols; column += 1) {
         const cellIndex = row * this.cols + column;
         const glyphIndex = cellIndex * GLYPH_FLOATS;
@@ -477,9 +479,11 @@ export class WebGlCellRenderer {
         if (width === 0) {
           rowRectanglesChanged ||=
             this.backgrounds[cellIndex] !== previousBackground ||
+            this.backgroundAlphas[cellIndex] !== previousBackgroundAlpha ||
             this.decorations[cellIndex] !== 0 ||
             (this.flags[cellIndex] & CellFlags.STRIKETHROUGH) !== 0;
           this.backgrounds[cellIndex] = previousBackground;
+          this.backgroundAlphas[cellIndex] = previousBackgroundAlpha;
           this.foregrounds[cellIndex] = 0;
           this.underlineColors[cellIndex] = 0;
           this.flags[cellIndex] = 0;
@@ -503,21 +507,23 @@ export class WebGlCellRenderer {
               ? SEARCH_ACTIVE_MATCH_BACKGROUND
               : SEARCH_MATCH_BACKGROUND;
         }
-        if (
-          frame.selection &&
-          selectionBoundsContain(frame.selection, viewportOrigin + row, column)
-        ) {
-          background = blendPackedRgb(
-            background,
-            this.packRgb(this.profile.theme.selection.color),
-            this.profile.theme.selection.alpha,
-          );
+        const selected =
+          frame.selection !== null &&
+          selectionBoundsContain(frame.selection, viewportOrigin + row, column);
+        const backgroundAlpha = selected
+          ? Math.round(this.profile.theme.selection.alpha * 255)
+          : background !== this.packRgb(this.profile.theme.background)
+            ? 255
+            : 0;
+        if (selected) {
+          background = this.packRgb(this.profile.theme.selection.color);
         }
         const underlineColor = cells.underlineColorPacked(cellIndex);
         const decoration =
           cells.underlineStyle(cellIndex) | (cells.overline(cellIndex) ? 8 : 0);
         rowRectanglesChanged ||=
           this.backgrounds[cellIndex] !== background ||
+          this.backgroundAlphas[cellIndex] !== backgroundAlpha ||
           this.decorations[cellIndex] !== decoration ||
           ((this.flags[cellIndex] ^ flags) & CellFlags.STRIKETHROUGH) !== 0 ||
           ((decoration !== 0 || (flags & CellFlags.STRIKETHROUGH) !== 0) &&
@@ -525,6 +531,7 @@ export class WebGlCellRenderer {
           ((decoration & 7) !== 0 &&
             this.underlineColors[cellIndex] !== underlineColor);
         this.backgrounds[cellIndex] = background;
+        this.backgroundAlphas[cellIndex] = backgroundAlpha;
         this.foregrounds[cellIndex] = foreground;
         this.underlineColors[cellIndex] = underlineColor;
         this.flags[cellIndex] = flags;
@@ -553,6 +560,7 @@ export class WebGlCellRenderer {
           );
         }
         previousBackground = background;
+        previousBackgroundAlpha = backgroundAlpha;
       }
       if (rowRectanglesChanged) this.rectangleDirtyRows[row] = 1;
       rectanglesChanged ||= rowRectanglesChanged;
@@ -687,12 +695,15 @@ export class WebGlCellRenderer {
     const defaultBackground = this.packRgb(this.profile.theme.background);
     let runStart = -1;
     let runColor = defaultBackground;
+    let runAlpha = 0;
     for (let column = 0; column <= this.cols; column += 1) {
       const index = row * this.cols + column;
       const color =
         column < this.cols ? this.backgrounds[index] : defaultBackground;
-      if (color === runColor) continue;
-      if (runStart >= 0 && runColor !== defaultBackground) {
+      const alpha =
+        column < this.cols ? this.backgroundAlphas[index] / 255 : 0;
+      if (color === runColor && alpha === runAlpha) continue;
+      if (runStart >= 0 && (runColor !== defaultBackground || runAlpha !== 0)) {
         this.writeRectangle(
           vertices,
           count++,
@@ -701,11 +712,12 @@ export class WebGlCellRenderer {
           column - runStart,
           1,
           runColor,
-          1,
+          runAlpha,
         );
       }
       runStart = column;
       runColor = color;
+      runAlpha = alpha;
     }
 
     for (let column = 0; column < this.cols; column += 1) {
@@ -878,7 +890,8 @@ export class WebGlCellRenderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.disable(gl.BLEND);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     this.drawRectangles(
       resources.colorProgram,
       resources.backgroundVao,
@@ -968,6 +981,7 @@ export class WebGlCellRenderer {
       this.cellCapacity = nextWebGlCellCapacity(this.cellCapacity, cells);
       this.glyphAttributes = new Float32Array(this.cellCapacity * GLYPH_FLOATS);
       this.backgrounds = new Uint32Array(this.cellCapacity);
+      this.backgroundAlphas = new Uint8Array(this.cellCapacity);
       this.foregrounds = new Uint32Array(this.cellCapacity);
       this.underlineColors = new Uint32Array(this.cellCapacity);
       this.flags = new Uint8Array(this.cellCapacity);
@@ -998,6 +1012,7 @@ export class WebGlCellRenderer {
       this.cellCapacity = targetCells;
       this.glyphAttributes = new Float32Array(this.cellCapacity * GLYPH_FLOATS);
       this.backgrounds = new Uint32Array(this.cellCapacity);
+      this.backgroundAlphas = new Uint8Array(this.cellCapacity);
       this.foregrounds = new Uint32Array(this.cellCapacity);
       this.underlineColors = new Uint32Array(this.cellCapacity);
       this.flags = new Uint8Array(this.cellCapacity);
@@ -1339,26 +1354,6 @@ function writeNormalizedPackedColor(
   target[offset + 3] = alpha;
 }
 
-function blendPackedRgb(
-  background: number,
-  foreground: number,
-  alpha: number,
-): number {
-  const amount = Math.max(0, Math.min(1, alpha));
-  const inverse = 1 - amount;
-  const red = Math.round(
-    ((background >> 16) & 0xff) * inverse +
-      ((foreground >> 16) & 0xff) * amount,
-  );
-  const green = Math.round(
-    ((background >> 8) & 0xff) * inverse + ((foreground >> 8) & 0xff) * amount,
-  );
-  const blue = Math.round(
-    (background & 0xff) * inverse + (foreground & 0xff) * amount,
-  );
-  return (red << 16) | (green << 8) | blue;
-}
-
 function nextPowerOfTwo(value: number): number {
   let result = 1;
   while (result < value) result *= 2;
@@ -1421,7 +1416,7 @@ void main() {
   }
   if (style == 4 && fract(v_unitquad.x * 4.0) > 0.42) discard;
   if (style == 5 && fract(v_unitquad.x * 2.0) > 0.68) discard;
-  outColor = v_color;
+  outColor = vec4(v_color.rgb * v_color.a, v_color.a);
 }`;
 
 const GLYPH_VERTEX_SHADER = `#version 300 es

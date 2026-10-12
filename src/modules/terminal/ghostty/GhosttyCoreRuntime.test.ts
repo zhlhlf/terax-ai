@@ -625,6 +625,61 @@ describe("GhosttyCoreRuntime", () => {
     model.dispose();
   });
 
+  it("separates words at punctuation and whitespace", async () => {
+    const runtime = new GhosttyCoreRuntime(() =>
+      TeraxGhostty.loadBytes(wasmBytes.slice(0)),
+    );
+    const model = await runtime.createModel({
+      leafId: 19,
+      cols: 12,
+      rows: 3,
+    });
+    model.write(new TextEncoder().encode("foo,bar baz"));
+    expect(model.wordRangeAt({ line: 0, column: 1 })).toEqual({
+      start: 0,
+      end: 2,
+    });
+    expect(model.wordRangeAt({ line: 0, column: 3 })).toEqual({
+      start: 3,
+      end: 3,
+    });
+    expect(model.wordRangeAt({ line: 0, column: 4 })).toEqual({
+      start: 4,
+      end: 6,
+    });
+    expect(model.wordRangeAt({ line: 0, column: 7 })).toEqual({
+      start: 7,
+      end: 7,
+    });
+    model.dispose();
+  });
+
+  it("treats continuous CJK as one word across wide-cell padding", async () => {
+    const runtime = new GhosttyCoreRuntime(() =>
+      TeraxGhostty.loadBytes(wasmBytes.slice(0)),
+    );
+    const model = await runtime.createModel({
+      leafId: 20,
+      cols: 16,
+      rows: 3,
+    });
+    model.write(new TextEncoder().encode("中文测试 中文abc 中文"));
+
+    expect(model.wordRangeAt({ line: 0, column: 0 })).toEqual({
+      start: 0,
+      end: 7,
+    });
+    expect(model.wordRangeAt({ line: 0, column: 1 })).toEqual({
+      start: 0,
+      end: 7,
+    });
+    expect(model.wordRangeAt({ line: 0, column: 10 })).toEqual({
+      start: 9,
+      end: 15,
+    });
+    model.dispose();
+  });
+
   it("selects the visible viewport without trailing blank rows", async () => {
     const runtime = new GhosttyCoreRuntime(() =>
       TeraxGhostty.loadBytes(wasmBytes.slice(0)),

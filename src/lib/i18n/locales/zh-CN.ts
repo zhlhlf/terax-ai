@@ -33,6 +33,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   "settings.general.language.description":
     "界面语言。切换后立即在所有窗口生效。",
   "settings.general.explorer": "文件浏览器",
+  "settings.general.headerSearch.title": "显示顶部搜索框",
+  "settings.general.headerSearch.description":
+    "在标题栏显示全局搜索框。关闭后可为标签页腾出更多空间。",
   "settings.general.showHidden.title": "显示隐藏文件",
   "settings.general.showHidden.description":
     "在文件浏览器和搜索中包含以点开头的文件与文件夹（.env、.gitignore、.config）。",
@@ -185,6 +188,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   "settings.themes.replaceImage": "替换图片",
   "settings.themes.chooseImage": "选择图片",
   "settings.themes.opacity": "不透明度",
+  "settings.themes.frameOpacity": "窗口透明度",
+  "settings.themes.frameOpacityHint":
+    "仅在未设置背景图时生效。数值越低，桌面透出得越多。",
   "settings.themes.blur": "模糊",
   "settings.themes.dropHint":
     "把图片拖到这里或点击选择。图片保存在本地，设置前不影响默认外观。",
@@ -1156,6 +1162,10 @@ export const zhCN: Record<keyof typeof en, string> = {
   "terminal.outputPaused.failed": "终端无法处理输出。请重新打开此终端以恢复。",
   "terminal.outputPaused.stalled": "正在等待终端连接。连接后将自动恢复传输。",
   "terminal.outputPaused.retry": "重试",
+  "terminal.menu.copy": "复制",
+  "terminal.menu.paste": "粘贴",
+  "terminal.menu.selectAll": "全选",
+  "terminal.menu.clear": "清屏",
 
   // ── Editor ──
   "editor.search.find": "查找",

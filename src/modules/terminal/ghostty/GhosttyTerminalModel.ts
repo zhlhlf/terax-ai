@@ -87,6 +87,7 @@ export interface GhosttyTerminalModelApi extends TerminalModel {
   lineEndColumn(line: number): number;
   selectionText(selection: TerminalBufferSelection): string;
   setSelection?(selection: TerminalBufferSelection | null): void;
+  selectViewport?(): void;
   trackedSelection?(): TerminalBufferSelection | null;
   encodeKey(event: KeyEvent): Uint8Array;
   mode(mode: number, isAnsi?: boolean): boolean;

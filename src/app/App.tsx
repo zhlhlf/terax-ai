@@ -100,6 +100,7 @@ import {
 } from "@/modules/terminal";
 import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import {
+  AppAlphaBridge,
   ThemeProvider,
   useThemeFileEditing,
   WindowVibrancyBridge,
@@ -1547,6 +1548,7 @@ export default function App() {
           )}
 
           <WindowVibrancyBridge />
+          <AppAlphaBridge />
 
           <AgentNotificationsBridge
             tabs={tabs}

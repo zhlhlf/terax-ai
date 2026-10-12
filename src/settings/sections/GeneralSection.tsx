@@ -32,6 +32,7 @@ import {
   setLanguage,
   setRestoreWindowState,
   setShowHidden,
+  setShowHeaderSearch,
   setTerminalCursorBlink,
   setTerminalCursorStyle,
   setTerminalFontFamily,
@@ -110,6 +111,7 @@ export function GeneralSection() {
   const explorerGitDecorations = usePreferencesStore(
     (s) => s.explorerGitDecorations,
   );
+  const showHeaderSearch = usePreferencesStore((s) => s.showHeaderSearch);
   const terminalRenderer = usePreferencesStore((s) => s.terminalRenderer);
   const terminalScreenReader = usePreferencesStore(
     (s) => s.terminalScreenReader,
@@ -264,6 +266,15 @@ export function GeneralSection() {
 
       <div className="flex flex-col gap-2">
         <Label>{t("settings.general.explorer")}</Label>
+        <SettingRow
+          title={t("settings.general.headerSearch.title")}
+          description={t("settings.general.headerSearch.description")}
+        >
+          <Switch
+            checked={showHeaderSearch}
+            onCheckedChange={(value) => void setShowHeaderSearch(value)}
+          />
+        </SettingRow>
         <SettingRow
           title={t("settings.general.showHidden.title")}
           description={t("settings.general.showHidden.description")}

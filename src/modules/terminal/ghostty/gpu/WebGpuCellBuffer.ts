@@ -71,6 +71,7 @@ export function writeCellInstance(
   width: number,
   height: number,
   background: number,
+  backgroundAlpha: number,
   underline: number,
   foreground: number,
   flags: number,
@@ -80,7 +81,14 @@ export function writeCellInstance(
   view.setFloat32(offset + 4, y, true);
   view.setFloat32(offset + 8, width, true);
   view.setFloat32(offset + 12, height, true);
-  writePackedColor(view, offset + 16, background, 1);
+  // The surface composites premultiplied, so a zero-alpha cell must carry no
+  // colour at all; leaving the background in place would add it twice.
+  writePackedColor(
+    view,
+    offset + 16,
+    backgroundAlpha === 0 ? 0 : background,
+    backgroundAlpha,
+  );
   writePackedColor(view, offset + 20, underline, 1);
   writePackedColor(view, offset + 24, foreground, 1);
   view.setUint32(offset + 28, flags, true);

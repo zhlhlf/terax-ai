@@ -132,6 +132,86 @@ describe("GhosttyInputController", () => {
   });
 
   it.each(["ghostty-vt.wasm", "ghostty-vt-scalar.wasm"])(
+    "sends one CR per Enter although keydown and beforeinput both report it (%s)",
+    async (artifact) => {
+      const bytes = await readFile(
+        new URL(
+          `../../../../../packages/ghostty-core/adapted/${artifact}`,
+          import.meta.url,
+        ),
+      );
+      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      const terminal = core.createTerminal(80, 24);
+      const input = new FakeTextArea();
+      const onData = vi.fn();
+      const encodeKey = vi.fn<GhosttyTerminalModelApi["encodeKey"]>((event) =>
+        terminal.encodeKey(event),
+      );
+      const controller = new GhosttyInputController({
+        model: { ...inputModel(), encodeKey },
+        input: input as unknown as HTMLTextAreaElement,
+        pointerTarget: new FakeElement() as unknown as HTMLElement,
+        cellSize: () => ({ width: 10, height: 20 }),
+        isMac: false,
+        onCopy: () => false,
+        onData,
+      });
+      try {
+        input.dispatchEvent(keyboardEvent({ key: "Enter", code: "Enter" }));
+        input.dispatchEvent(
+          Object.assign(
+            new Event("beforeinput", { bubbles: true, cancelable: true }),
+            { inputType: "insertLineBreak", data: null, isComposing: false },
+          ) as InputEvent,
+        );
+        expect(onData).toHaveBeenCalledOnce();
+        expect(onData).toHaveBeenCalledWith(new Uint8Array([13]));
+
+        // A later, genuinely separate press must still reach the shell.
+        input.dispatchEvent(keyboardEvent({ key: "Enter", code: "Enter" }));
+        expect(onData).toHaveBeenCalledTimes(2);
+      } finally {
+        controller.dispose();
+        terminal.dispose();
+      }
+    },
+  );
+
+  it("sends one line feed per key repeat while Enter is held", () => {
+    const input = new FakeTextArea();
+    const onData = vi.fn();
+    const controller = new GhosttyInputController({
+      model: { ...inputModel(), encodeKey: () => new Uint8Array([13]) },
+      input: input as unknown as HTMLTextAreaElement,
+      pointerTarget: new FakeElement() as unknown as HTMLElement,
+      cellSize: () => ({ width: 10, height: 20 }),
+      isMac: false,
+      onCopy: () => false,
+      onData,
+    });
+    try {
+      const lineBreak = () =>
+        Object.assign(
+          new Event("beforeinput", { bubbles: true, cancelable: true }),
+          { inputType: "insertLineBreak", data: null, isComposing: false },
+        ) as InputEvent;
+
+      for (let repeat = 0; repeat < 5; repeat++) {
+        input.dispatchEvent(
+          keyboardEvent({ key: "Enter", code: "Enter", repeat: repeat > 0 }),
+        );
+        input.dispatchEvent(lineBreak());
+      }
+      expect(onData).toHaveBeenCalledTimes(5);
+      for (const call of onData.mock.calls) {
+        expect(call[0]).toEqual(new Uint8Array([13]));
+      }
+    } finally {
+      controller.dispose();
+    }
+  });
+
+  it.each(["ghostty-vt.wasm", "ghostty-vt-scalar.wasm"])(
     "preserves Control through Fish's Kitty keyboard mode (%s)",
     async (artifact) => {
       const bytes = await readFile(

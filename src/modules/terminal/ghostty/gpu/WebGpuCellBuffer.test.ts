@@ -40,6 +40,7 @@ describe("WebGPU packed cell buffers", () => {
       9,
       18,
       0x123456,
+      1,
       0xabcdef,
       0x102030,
       CELL_FLAG_STRIKETHROUGH | CELL_FLAG_OVERLINE,
@@ -51,6 +52,15 @@ describe("WebGPU packed cell buffers", () => {
     expect(view.getUint32(28, true)).toBe(
       CELL_FLAG_STRIKETHROUGH | CELL_FLAG_OVERLINE,
     );
+  });
+
+  it("writes a fully transparent background for the default cell", () => {
+    const buffer = new ArrayBuffer(PACKED_INSTANCE_BYTES);
+    const view = new DataView(buffer);
+    writeCellInstance(view, 0, 0, 0, 9, 18, 0x141414, 0, 0xabcdef, 0, 0);
+
+    // The surface is premultiplied, so a zero-alpha cell must not carry colour.
+    expect([...new Uint8Array(buffer, 16, 4)]).toEqual([0, 0, 0, 0]);
   });
 
   it("packs quantized UVs, color, alpha, and glyph flags into 32 bytes", () => {

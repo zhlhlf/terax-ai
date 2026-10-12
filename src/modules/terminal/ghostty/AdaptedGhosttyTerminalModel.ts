@@ -94,6 +94,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
   private packedViewport = new Uint8Array(0);
   private packedRenderVersion = -1;
   private renderVersion = 0;
+  private presentedCursorRow: number | null = null;
   private contentRevision = 0;
   private writeCount = 0;
   private renderStateUpdateCount = 0;
@@ -305,6 +306,12 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     } else if (damage.kind !== "none") {
       this.ensureRenderState();
     }
+    const cursorRow = this.renderState?.cursor.row ?? null;
+    damage = mergeDamage(
+      damage,
+      cursorDamage(this.presentedCursorRow, cursorRow, this.rowsValue),
+    );
+    this.presentedCursorRow = cursorRow;
     this.pendingDamage = NO_DAMAGE;
     this.damageNeedsResolution = false;
     this.damageNotificationPending = false;
@@ -612,6 +619,24 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     return lines.join("\n");
   }
 
+  selectViewport(): void {
+    this.assertLive();
+    const origin = this.viewportOriginLine();
+    let last = origin;
+    for (let row = this.rowsValue - 1; row >= 0; row -= 1) {
+      const line = origin + row;
+      if (this.readBufferLine(line).cells.some((cell) => cell.trim() !== "")) {
+        last = line;
+        break;
+      }
+    }
+    this.setSelection({
+      anchor: { line: origin, column: 0 },
+      focus: { line: last, column: this.lineEndColumn(last) },
+      rectangular: false,
+    });
+  }
+
   setSelection(selection: TerminalBufferSelection | null): void {
     this.assertLive();
     const previous = this.terminal.selection();
@@ -683,6 +708,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
       ? { total: 0, length: 0 }
       : this.terminal.scrollbar();
     const resources = this.disposed ? null : this.terminal.resourceStats();
+    const position = this.disposed ? null : this.scrollPosition();
     return {
       backend: this.backend,
       cols: this.colsValue,
@@ -694,6 +720,10 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
       bridgeCellCapacity: resources?.cellCapacity ?? 0,
       bridgeRowCapacity: resources?.rowCapacity ?? 0,
       renderStateResets: resources?.renderStateResets ?? 0,
+      cursorRow: this.disposed ? undefined : this.cursor().y,
+      cursorColumn: this.disposed ? undefined : this.cursor().x,
+      viewportOffset: position?.offset,
+      viewportHistory: position?.history,
     };
   }
 
@@ -1076,6 +1106,23 @@ function mergeDamage(
   return { kind: "rows", ranges };
 }
 
+function cursorDamage(
+  previousRow: number | null,
+  currentRow: number | null,
+  rows: number,
+): TerminalDamage {
+  if (previousRow === currentRow) return NO_DAMAGE;
+  const dirtyRows = [previousRow, currentRow].filter(
+    (row): row is number => row !== null && row >= 0 && row < rows,
+  );
+  if (dirtyRows.length === 0) return NO_DAMAGE;
+  const uniqueRows = [...new Set(dirtyRows)].sort((left, right) => left - right);
+  return {
+    kind: "rows",
+    ranges: uniqueRows.map((row) => ({ start: row, end: row })),
+  };
+}
+
 function selectionDamage(
   selection: TerminalBufferSelection | null,
   origin: number,
@@ -1165,7 +1212,7 @@ function normalizeBufferSelection(selection: TerminalBufferSelection): {
 
 function wordCategory(value: string): "space" | "word" | "punctuation" {
   if (/\s/u.test(value)) return "space";
-  if (/^[\p{Letter}\p{Number}_]$/u.test(value)) return "word";
+  if (/^[\p{Letter}\p{Number}_-]$/u.test(value)) return "word";
   return "punctuation";
 }
 

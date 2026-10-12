@@ -334,6 +334,15 @@ export function pasteIntoGhosttySession(leafId: number, text: string): boolean {
   return true;
 }
 
+export function selectGhosttyViewport(leafId: number): boolean {
+  const session = sessions.get(leafId);
+  const model = session?.model;
+  if (!session || session.disposed || !model?.selectViewport) return false;
+  model.selectViewport();
+  session.surface?.focus();
+  return true;
+}
+
 export function ghosttySelectionForLeaf(leafId: number): string | null {
   return sessions.get(leafId)?.surface?.getSelection() ?? null;
 }
@@ -865,7 +874,6 @@ function createGhosttyInput(
     },
     onText: insertPromptText,
     onPaste: insertPromptText,
-    getSelection: () => surface.getSelection(),
     onCopy: () => {
       const text = surface.getSelection();
       if (!text) return false;

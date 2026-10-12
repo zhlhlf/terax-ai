@@ -4,6 +4,7 @@ import { type TranslationKey, useT } from "@/lib/i18n";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
 import type { SettingsTab } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import { AppAlphaBridge } from "@/modules/theme/AppAlphaBridge";
 import {
   AiScanIcon,
   InformationCircleIcon,
@@ -124,10 +125,11 @@ export function SettingsApp() {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground select-none">
+    <div className="flex h-screen flex-col overflow-hidden bg-transparent text-foreground select-none">
+      <AppAlphaBridge />
       <header
         data-tauri-drag-region
-        className={`flex h-11 shrink-0 items-center border-b border-border/60 bg-card/60 ${
+        className={`flex h-11 shrink-0 items-center border-b border-border/60 ${
           IS_MAC ? "pr-3 pl-22" : "pr-0 pl-3"
         }`}
       >

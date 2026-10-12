@@ -156,7 +156,7 @@ export class WebGlCellRenderer {
     this.canvas.className = "block";
     this.canvas.setAttribute("aria-hidden", "true");
     const context = this.canvas.getContext("webgl2", {
-      alpha: false,
+      alpha: true,
       antialias: false,
       depth: false,
       desynchronized: true,
@@ -868,15 +868,14 @@ export class WebGlCellRenderer {
     const atlas = this.atlas;
     if (!resources || !profile || !atlas) return;
     const gl = this.gl;
-    const background = profile.theme.background;
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.STENCIL_TEST);
-    gl.clearColor(
-      background[0] / 255,
-      background[1] / 255,
-      background[2] / 255,
-      1,
-    );
+    // Fully transparent black: the default background paints nothing, so the
+    // app surface behind the terminal shows through. The colour channels have
+    // to be zero as well, not the theme background, because the surface is
+    // composited premultiplied and a zero-alpha pixel carrying colour would
+    // still add it.
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.disable(gl.BLEND);
@@ -892,7 +891,8 @@ export class WebGlCellRenderer {
     );
 
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // Premultiplied source: the glyph shader already scaled rgb by coverage.
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     // biome-ignore lint/correctness/useHookAtTopLevel: WebGL method, not a React hook.
     gl.useProgram(resources.glyphProgram.value);
     gl.bindVertexArray(resources.glyphVao);
@@ -1458,11 +1458,16 @@ out vec4 outColor;
 void main() {
   float alpha = abs(v_color.a);
   if (v_color.a < 0.0 && !u_text_blink_visible) alpha = 0.0;
+  // Emit premultiplied colour: the canvas is composited premultiplied (the
+  // transparent surface requires it), and the glyph pass blends with ONE as
+  // the source factor to match.
   if (v_intrinsic_color > 0.5) {
     vec4 color = texture(u_color_atlas, v_texcoord);
-    outColor = vec4(color.rgb, alpha * color.a);
+    float a = alpha * color.a;
+    outColor = vec4(color.rgb * a, a);
   } else {
     float coverage = texture(u_atlas, v_texcoord).r;
-    outColor = vec4(v_color.rgb, alpha * coverage);
+    float a = alpha * coverage;
+    outColor = vec4(v_color.rgb * a, a);
   }
 }`;

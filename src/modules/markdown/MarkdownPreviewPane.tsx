@@ -60,7 +60,7 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
   return (
     <div
       className={cn(
-        "relative flex h-full w-full flex-col overflow-hidden bg-background",
+        "relative flex h-full w-full flex-col overflow-hidden bg-transparent",
         !visible && "pointer-events-none",
       )}
     >

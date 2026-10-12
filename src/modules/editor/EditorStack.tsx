@@ -104,7 +104,7 @@ export function EditorStack({
             )}
             aria-hidden={!visible}
           >
-            <div className="relative h-full overflow-hidden bg-background">
+            <div className="relative h-full overflow-hidden bg-transparent">
               {isMarkdownPath(t.path) && (
                 <MarkdownViewToggle
                   mode="raw"

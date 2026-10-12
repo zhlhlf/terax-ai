@@ -9,10 +9,6 @@ import {
 import type { GhosttyTerminalModelApi } from "../GhosttyTerminalModel";
 import { encodeTerminalPaste } from "./terminalInputEncoding";
 
-import { TerminalNativeSelection } from "@/modules/terminal/ghostty/input/TerminalNativeSelection";
-
-const DUPLICATE_INPUT_WINDOW_MS = 75;
-
 const KEY_MAP: Readonly<Record<string, Key>> = {
   KeyA: Key.A,
   KeyB: Key.B,
@@ -137,7 +133,6 @@ export type GhosttyInputControllerOptions = {
   readonly cellSize: () => { width: number; height: number };
   readonly onData: (bytes: Uint8Array) => void;
   readonly onCopy: () => boolean;
-  readonly getSelection?: () => string | null;
   readonly onPaste?: (text: string) => boolean;
   readonly onText?: (text: string) => boolean;
   readonly onKeyDown?: (event: KeyboardEvent) => boolean;
@@ -148,28 +143,25 @@ export type GhosttyInputControllerOptions = {
 export class GhosttyInputController {
   private readonly encoder = new TextEncoder();
   private readonly isMac: boolean;
-  private readonly nativeSelection: TerminalNativeSelection | null;
   private readonly pressedKeys = new Map<string, KeyEvent>();
   private composing = false;
   private mouseButtons = 0;
-  private lastData = "";
+  /**
+   * One physical press is reported twice to the hidden input, once as a keydown
+   * and once as the beforeinput it produces. Both belong to the same press while
+   * the two reports follow each other with nothing in between, so bytes that
+   * repeat, change source, and are not a key repeat itself are the second half
+   * of a press already handled. Deciding it that way rather than by a time
+   * window keeps a held key from slipping a second line feed through per repeat.
+   */
+  private lastBytes: Uint8Array | null = null;
   private lastSource: InputSource | null = null;
-  private lastDataAt = 0;
   private wheelRemainder = 0;
   private lastMouseMotion: string | null = null;
   private disposed = false;
 
   constructor(private readonly options: GhosttyInputControllerOptions) {
     this.isMac = options.isMac ?? /Mac|iPhone|iPad/.test(navigator.userAgent);
-    this.nativeSelection = options.getSelection
-      ? new TerminalNativeSelection({
-          input: options.input,
-          target: options.pointerTarget,
-          getSelection: options.getSelection,
-          mouseTracking: () => options.model.modes().mouseTracking,
-          isMac: this.isMac,
-        })
-      : null;
     options.input.addEventListener("keydown", this.handleKeyDown);
     options.input.addEventListener("keyup", this.handleKeyUp);
     options.input.addEventListener("beforeinput", this.handleBeforeInput);
@@ -191,7 +183,6 @@ export class GhosttyInputController {
 
   paste(text: string): void {
     if (this.disposed || !text) return;
-    this.nativeSelection?.reset();
     if (this.options.onPaste?.(text)) return;
     this.emitText(
       encodeTerminalPaste(text, this.options.model.modes().bracketedPaste),
@@ -203,7 +194,6 @@ export class GhosttyInputController {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.nativeSelection?.dispose();
     this.pressedKeys.clear();
     const { input, pointerTarget } = this.options;
     input.removeEventListener("keydown", this.handleKeyDown);
@@ -221,7 +211,6 @@ export class GhosttyInputController {
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    this.nativeSelection?.reset();
     if (
       event.defaultPrevented ||
       this.composing ||
@@ -298,7 +287,7 @@ export class GhosttyInputController {
     if (encoded.byteLength > 0) {
       consume(event);
       this.options.model.scrollToBottom();
-      this.options.onData(encoded);
+      this.sendInput(encoded, "keydown", event.repeat);
     }
   };
 
@@ -548,26 +537,42 @@ export class GhosttyInputController {
     keyEvent?: KeyboardEvent,
   ): void {
     if (this.disposed) return;
-    const now = performance.now();
-    if (
-      deduplicate &&
-      source !== this.lastSource &&
-      data === this.lastData &&
-      now - this.lastDataAt < DUPLICATE_INPUT_WINDOW_MS
-    ) {
-      this.lastData = "";
-      this.lastSource = null;
-      return;
-    }
-    this.lastData = data;
-    this.lastSource = source;
-    this.lastDataAt = now;
-    if (editableText && this.options.onText?.(data)) return;
-    if (scrollToBottom) this.options.model.scrollToBottom();
     const bytes = keyEvent
       ? this.encodeKeyDown(keyEvent, KEY_MAP[keyEvent.code])
       : this.encoder.encode(data);
+    if (this.consumeDuplicate(bytes, deduplicate ? source : null, false))
+      return;
+    if (editableText && this.options.onText?.(data)) return;
+    if (scrollToBottom) this.options.model.scrollToBottom();
     if (bytes.byteLength > 0) this.options.onData(bytes);
+  }
+
+  private sendInput(
+    bytes: Uint8Array,
+    source: InputSource | null,
+    repeat: boolean,
+  ): void {
+    if (this.consumeDuplicate(bytes, source, repeat)) return;
+    this.options.onData(bytes);
+  }
+
+  private consumeDuplicate(
+    bytes: Uint8Array,
+    source: InputSource | null,
+    repeat: boolean,
+  ): boolean {
+    const duplicate =
+      source !== null &&
+      !repeat &&
+      bytes.byteLength > 0 &&
+      bytesEqual(bytes, this.lastBytes) &&
+      source !== this.lastSource;
+    // A consumed pair, and any send that opted out of deduplication, clears the
+    // bytes so the next press is never mistaken for the other half of an earlier
+    // one, or for a byte a paste happened to leave behind.
+    this.lastBytes = duplicate || source === null ? null : bytes.slice();
+    this.lastSource = duplicate ? null : source;
+    return duplicate;
   }
 }
 
@@ -658,4 +663,12 @@ function isPasteShortcut(event: KeyboardEvent, isMac: boolean): boolean {
 function consume(event: Event): void {
   event.preventDefault();
   event.stopPropagation();
+}
+
+function bytesEqual(left: Uint8Array, right: Uint8Array | null): boolean {
+  if (!right || left.byteLength !== right.byteLength) return false;
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
 }

@@ -248,15 +248,44 @@ html[data-chrome="borderless"],
 html[data-chrome="borderless"] body {
   background: transparent !important;
 }
-html[data-chrome="borderless"] #root,
-html[data-chrome="borderless"] #settings-root {
+html[data-chrome="borderless"] #root {
   height: 100%;
   border-radius: var(--window-radius);
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--background);
 }
+html[data-chrome="borderless"] #settings-root {
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
 html[data-chrome="borderless"] #root {
+  background: var(--frame);
+}
+
+/* No background image: the shell paints a single translucent backdrop instead
+ * of a stack of solid layers. `--frame` carries the alpha, set from the user's
+ * `frameOpacity` preference as `--frame-alpha` (default 66%), and the shell's own
+ * `bg-frame` is the one element that shows it; `#root` and the panes drop their
+ * fills so the same fill is not stacked twice. The settings window has no
+ * `bg-frame` of its own, so it paints `--frame` directly. Nothing inside either
+ * window may paint over that one fill: a translucent surface (the settings
+ * header's `bg-card/60`) composites with it into a second shade and reads as a
+ * seam against the borderless-corner arc; the main header stays background-free
+ * for the same reason. Declared after the vibrancy and borderless rules so an
+ * image-less window keeps this alpha, not their mix. */
+html[data-app-alpha="on"] {
+  --frame: rgb(from var(--background) r g b / var(--frame-alpha, 0.66));
+}
+html[data-app-alpha="on"] #root {
+  background: transparent;
+}
+html[data-app-alpha="on"] .terax-pane {
+  background: transparent;
+}
+html[data-app-alpha="on"] #settings-root {
   background: var(--frame);
 }
 

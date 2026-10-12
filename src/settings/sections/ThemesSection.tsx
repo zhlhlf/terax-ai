@@ -23,6 +23,7 @@ import {
   setBackgroundKind,
   setBackgroundOpacity,
   setEditorTheme,
+  setFrameOpacity,
   setWindowVibrancy,
 } from "@/modules/settings/store";
 import { useTheme } from "@/modules/theme";
@@ -79,6 +80,7 @@ export function ThemesSection() {
   const backgroundImageId = usePreferencesStore((s) => s.backgroundImageId);
   const backgroundOpacity = usePreferencesStore((s) => s.backgroundOpacity);
   const backgroundBlur = usePreferencesStore((s) => s.backgroundBlur);
+  const frameOpacity = usePreferencesStore((s) => s.frameOpacity);
   const windowVibrancy = usePreferencesStore((s) => s.windowVibrancy);
 
   const [backdrop, setBackdrop] = useState<Backdrop>("none");
@@ -457,9 +459,26 @@ export function ThemesSection() {
             />
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground">
-            {t("settings.themes.dropHint")}
-          </p>
+          <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11.5px] text-muted-foreground">
+                {t("settings.themes.frameOpacity")}
+              </span>
+              <span className="tabular-nums text-[11px] text-muted-foreground">
+                {Math.round(frameOpacity * 100)}%
+              </span>
+            </div>
+            <Slider
+              value={[frameOpacity]}
+              min={0.1}
+              max={1}
+              step={0.01}
+              onValueChange={(v) => void setFrameOpacity(v[0] ?? 0.66)}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              {t("settings.themes.frameOpacityHint")}
+            </p>
+          </div>
         )}
       </div>
     </div>

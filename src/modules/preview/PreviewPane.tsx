@@ -79,7 +79,7 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
 
     return (
       <div
-        className="flex h-full w-full flex-col overflow-hidden bg-background"
+        className="flex h-full w-full flex-col overflow-hidden bg-transparent"
         style={{
           visibility: visible ? "visible" : "hidden",
           pointerEvents: visible ? "auto" : "none",
@@ -146,7 +146,7 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
           className={
             url
               ? "relative min-h-0 flex-1 bg-white"
-              : "relative min-h-0 flex-1 bg-background"
+              : "relative min-h-0 flex-1 bg-transparent"
           }
         >
           {url ? (

@@ -283,20 +283,102 @@ function dragFixture(realModel?: GhosttyTerminalModelApi) {
     model,
     onChange,
     tracked: () => tracked,
-    pointer: (type: string, clientX: number, clientY = 10) =>
-      target.dispatchEvent(
-        Object.assign(new Event(type, { cancelable: true }), {
-          pointerId: 1,
-          button: 0,
-          detail: 1,
-          shiftKey: false,
-          altKey: false,
-          clientX,
-          clientY,
-        }),
-      ),
+    pointer: (
+      type: string,
+      clientX: number,
+      clientY = 10,
+      timeStamp?: number,
+    ) => {
+      const event = Object.assign(new Event(type, { cancelable: true }), {
+        pointerId: 1,
+        button: 0,
+        detail: 1,
+        shiftKey: false,
+        altKey: false,
+        clientX,
+        clientY,
+      });
+      // Event.timeStamp is a prototype getter, so it needs an own property to
+      // drive the click interval deterministically.
+      if (timeStamp !== undefined)
+        Object.defineProperty(event, "timeStamp", { value: timeStamp });
+      return target.dispatchEvent(event);
+    },
   };
 }
+
+describe("terminal multi-click selection", () => {
+  it("selects the word under a double click", async () => {
+    const bytes = await readFile(
+      new URL(
+        "../../../../../packages/ghostty-core/adapted/ghostty-vt.wasm",
+        import.meta.url,
+      ),
+    );
+    const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+    const model = new AdaptedGhosttyTerminalModel(core, {
+      backend: "ghostty-webgpu",
+      cols: 80,
+      rows: 24,
+    });
+    const fixture = dragFixture(model);
+    try {
+      model.write(new TextEncoder().encode("run src-tauri now"));
+      fixture.pointer("pointerdown", 55, 10, 1000);
+      fixture.pointer("pointerup", 55, 10, 1000);
+      fixture.pointer("pointerdown", 55, 10, 1150);
+      fixture.pointer("pointerup", 55, 10, 1150);
+      expect(fixture.controller.text()).toBe("src-tauri");
+    } finally {
+      fixture.controller.dispose();
+      model.dispose();
+    }
+  });
+
+  it("selects the whole line on a triple click", async () => {
+    const bytes = await readFile(
+      new URL(
+        "../../../../../packages/ghostty-core/adapted/ghostty-vt.wasm",
+        import.meta.url,
+      ),
+    );
+    const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+    const model = new AdaptedGhosttyTerminalModel(core, {
+      backend: "ghostty-webgpu",
+      cols: 80,
+      rows: 24,
+    });
+    const fixture = dragFixture(model);
+    try {
+      model.write(new TextEncoder().encode("alpha beta gamma"));
+      fixture.pointer("pointerdown", 25, 10, 1000);
+      fixture.pointer("pointerup", 25, 10, 1000);
+      fixture.pointer("pointerdown", 25, 10, 1100);
+      fixture.pointer("pointerup", 25, 10, 1100);
+      fixture.pointer("pointerdown", 25, 10, 1200);
+      fixture.pointer("pointerup", 25, 10, 1200);
+      expect(fixture.controller.text()).toBe("alpha beta gamma");
+    } finally {
+      fixture.controller.dispose();
+      model.dispose();
+    }
+  });
+
+  it("treats two presses separated by a pause as separate clicks", () => {
+    const fixture = dragFixture();
+    fixture.pointer("pointerdown", 15, 10, 1000);
+    fixture.pointer("pointerup", 15, 10, 1000);
+    fixture.pointer("pointerdown", 15, 10, 3000);
+    fixture.pointer("pointermove", 45, 10, 3000);
+    // Character mode keeps the exact dragged span. A word-mode misread would
+    // have expanded it instead.
+    expect(fixture.controller.normalizedBounds()).toMatchObject({
+      left: 1,
+      right: 4,
+    });
+    fixture.controller.dispose();
+  });
+});
 
 describe("terminal selection geometry", () => {
   it("normalizes backward selections", () => {

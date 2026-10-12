@@ -7,9 +7,9 @@ use modules::{
 };
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
-use tauri::{PhysicalPosition, WindowEvent};
+use tauri::WindowEvent;
+use tauri::{Emitter, Manager, PhysicalPosition, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_window_state::StateFlags;
 
 /// Drained on first read so HMR / re-mounts can't replay the launch dir.
@@ -85,6 +85,44 @@ const fn settings_always_on_top(is_macos: bool) -> bool {
     !is_macos
 }
 
+const SETTINGS_WIDTH: f64 = 900.0;
+const SETTINGS_HEIGHT: f64 = 700.0;
+const SETTINGS_MIN_WIDTH: f64 = 820.0;
+const SETTINGS_MIN_HEIGHT: f64 = 620.0;
+
+/// Sizes Settings against the monitor showing the main window. Monitor size is
+/// physical; convert to logical before applying the rule below.
+fn settings_size_for_monitor(monitor: Option<&tauri::Monitor>) -> (f64, f64) {
+    let Some(monitor) = monitor else {
+        return (SETTINGS_WIDTH, SETTINGS_HEIGHT);
+    };
+
+    let scale = monitor.scale_factor();
+    if !(scale.is_finite() && scale > 0.0) {
+        return (SETTINGS_WIDTH, SETTINGS_HEIGHT);
+    }
+
+    let work = monitor.work_area();
+    clamp_settings_size(
+        f64::from(work.size.width) / scale,
+        f64::from(work.size.height) / scale,
+    )
+}
+
+/// Heights near the full display read as broken, so cap Settings at 70% of the
+/// usable height and never taller than the 700 default, floored at the 620 min.
+/// Width is 900 capped at 90% of the monitor, floored at the 820 min.
+fn clamp_settings_size(logical_w: f64, logical_h: f64) -> (f64, f64) {
+    if !(logical_w.is_finite() && logical_h.is_finite() && logical_w > 0.0 && logical_h > 0.0) {
+        return (SETTINGS_WIDTH, SETTINGS_HEIGHT);
+    }
+
+    let width = SETTINGS_WIDTH.min(logical_w * 0.9).max(SETTINGS_MIN_WIDTH);
+    let height = (logical_h * 0.7).clamp(SETTINGS_MIN_HEIGHT, SETTINGS_HEIGHT);
+
+    (width, height)
+}
+
 #[tauri::command]
 async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Result<(), String> {
     let url_path = match tab.as_deref() {
@@ -105,10 +143,19 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         return Ok(());
     }
 
+    // Size against the monitor the main window sits on, not the primary one, so
+    // a multi-monitor setup does not place Settings off-screen. Never taller
+    // than 70% of the work area (see clamp_settings_size).
+    let settings_monitor = app
+        .get_webview_window("main")
+        .and_then(|main| main.current_monitor().ok().flatten())
+        .or_else(|| app.primary_monitor().ok().flatten());
+    let (settings_width, settings_height) = settings_size_for_monitor(settings_monitor.as_ref());
+
     let builder = WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App(url_path.into()))
         .title("Settings")
-        .inner_size(900.0, 700.0)
-        .min_inner_size(820.0, 620.0)
+        .inner_size(settings_width, settings_height)
+        .min_inner_size(SETTINGS_MIN_WIDTH, SETTINGS_MIN_HEIGHT)
         .resizable(true)
         .visible(false)
         .always_on_top(settings_always_on_top(cfg!(target_os = "macos")));
@@ -141,21 +188,24 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         let _ = window.set_decorations(false);
     }
 
-    #[cfg(target_os = "macos")]
-    if let Some(main) = app.get_webview_window("main") {
-        if let (Ok(main_pos), Ok(main_size), Ok(settings_size)) = (
-            main.outer_position(),
-            main.outer_size(),
-            window.outer_size(),
-        ) {
-            let x = main_pos.x
-                + ((main_size.width as i32).saturating_sub(settings_size.width as i32)) / 2;
-            let y = main_pos.y
-                + ((main_size.height as i32).saturating_sub(settings_size.height as i32)) / 2;
+    // Center on the monitor that hosts the main window, on every platform. The
+    // macOS parent-child relationship governs stacking, not placement, so the
+    // same work-area centering applies there too; `window.center()` covers the
+    // case where the monitor could not be read at all.
+    if let Some(monitor) = &settings_monitor {
+        let scale = monitor.scale_factor();
+        let work = monitor.work_area();
+        if scale.is_finite() && scale > 0.0 {
+            let win_w = (settings_width * scale).round() as i32;
+            let win_h = (settings_height * scale).round() as i32;
+            let x = work.position.x + (work.size.width as i32 - win_w) / 2;
+            let y = work.position.y + (work.size.height as i32 - win_h) / 2;
             let _ = window.set_position(PhysicalPosition::new(x, y));
         } else {
             let _ = window.center();
         }
+    } else {
+        let _ = window.center();
     }
 
     Ok(())
@@ -196,9 +246,14 @@ pub fn run() {
         // Skip restoring VISIBLE — frontend calls window.show() after first
         // paint so the user never sees a transparent window-shadow flash on
         // Windows/Linux.
+        // Settings is also denied initial restore: it is a dialog whose size is
+        // computed from the monitor on open, and a stale saved entry (an older
+        // build could be dragged taller than the display while always-on-top)
+        // would otherwise override that and reopen near full height.
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                .skip_initial_state("settings")
                 .build(),
         )
         .plugin(tauri_plugin_autostart::Builder::new().build())
@@ -214,6 +269,14 @@ pub fn run() {
         .setup(move |_app| {
             #[cfg(target_os = "macos")]
             modules::window_presentation::macos::install(_app.handle());
+            if let Some(main) = _app.get_webview_window("main") {
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(350));
+                    if let Err(error) = main.show() {
+                        log::warn!("could not show main window: {error}");
+                    }
+                });
+            }
             if let Err(error) = control::start(_app.handle().clone(), control_for_setup.clone()) {
                 log::warn!("could not start Terax control server: {error}");
             }
@@ -446,5 +509,44 @@ mod launch_target_tests {
     fn settings_float_only_outside_macos() {
         assert!(!settings_always_on_top(true));
         assert!(settings_always_on_top(false));
+    }
+}
+
+#[cfg(test)]
+mod settings_size_tests {
+    use super::{
+        clamp_settings_size, SETTINGS_HEIGHT, SETTINGS_MIN_HEIGHT, SETTINGS_MIN_WIDTH,
+        SETTINGS_WIDTH,
+    };
+
+    #[test]
+    fn no_monitor_falls_back_to_defaults() {
+        assert_eq!(
+            clamp_settings_size(f64::NAN, 0.0),
+            (SETTINGS_WIDTH, SETTINGS_HEIGHT)
+        );
+        assert_eq!(
+            clamp_settings_size(-1.0, -1.0),
+            (SETTINGS_WIDTH, SETTINGS_HEIGHT)
+        );
+    }
+
+    #[test]
+    fn tall_display_is_capped_at_seventy_percent() {
+        // 1440 logical height would otherwise reopen near full height.
+        assert_eq!(clamp_settings_size(2560.0, 1440.0).1, 700.0);
+    }
+
+    #[test]
+    fn short_display_uses_seventy_percent() {
+        // 500 * 0.7 = 350, below the 620 floor, so the floor wins.
+        assert_eq!(clamp_settings_size(1280.0, 500.0).1, SETTINGS_MIN_HEIGHT);
+        assert_eq!(clamp_settings_size(1280.0, 2000.0).1, 700.0);
+    }
+
+    #[test]
+    fn narrow_display_never_goes_below_the_width_floor() {
+        assert_eq!(clamp_settings_size(600.0, 1000.0).0, SETTINGS_MIN_WIDTH);
+        assert_eq!(clamp_settings_size(1000.0, 1000.0).0, 900.0);
     }
 }

@@ -6,6 +6,11 @@ import type {
 
 type SelectionMode = "character" | "word" | "line";
 
+// A double click is two presses within this window; the slop keeps a press that
+// drifted, such as a drag started on an earlier click, from counting as one.
+const MULTI_CLICK_INTERVAL_MS = 400;
+const MULTI_CLICK_SLOP_PX = 4;
+
 export type TerminalSelectionBounds = {
   readonly startLine: number;
   readonly startColumn: number;
@@ -35,10 +40,19 @@ export class TerminalSelectionController {
   private lastClientY = 0;
   private autoScrollFrame: number | null = null;
   private disposed = false;
+  private pendingClickCount = 0;
+  private lastClickAt = 0;
+  private lastClickMask = 0;
+  private lastClickX = 0;
+  private lastClickY = 0;
 
   constructor(private readonly options: TerminalSelectionControllerOptions) {
     this.selection = options.model.trackedSelection?.() ?? null;
     this.meaningful = this.selection !== null;
+    // PointerEvent carries no click count, and the listeners below are
+    // suppressed while the application owns the mouse, so the count has to be
+    // accumulated in the capture phase, where the event always arrives.
+    options.target.addEventListener("pointerdown", this.handleClickCount, true);
     options.target.addEventListener("pointerdown", this.handlePointerDown);
     options.target.addEventListener("pointermove", this.handlePointerMove);
     options.target.addEventListener("pointerup", this.handlePointerUp);
@@ -105,6 +119,11 @@ export class TerminalSelectionController {
     this.disposed = true;
     this.suspend();
     const { target } = this.options;
+    target.removeEventListener(
+      "pointerdown",
+      this.handleClickCount,
+      true,
+    );
     target.removeEventListener("pointerdown", this.handlePointerDown);
     target.removeEventListener("pointermove", this.handlePointerMove);
     target.removeEventListener("pointerup", this.handlePointerUp);
@@ -125,6 +144,22 @@ export class TerminalSelectionController {
 
   private readonly handleLostCapture = (event: PointerEvent): void => {
     if (event.pointerId === this.pointerId) this.suspend();
+  };
+
+  private readonly handleClickCount = (event: PointerEvent): void => {
+    const now = event.timeStamp;
+    const sameButton = (event.buttons || 1) === this.lastClickMask;
+    this.pendingClickCount =
+      sameButton &&
+      now - this.lastClickAt <= MULTI_CLICK_INTERVAL_MS &&
+      Math.abs(event.clientX - this.lastClickX) <= MULTI_CLICK_SLOP_PX &&
+      Math.abs(event.clientY - this.lastClickY) <= MULTI_CLICK_SLOP_PX
+        ? Math.min(this.pendingClickCount + 1, 3)
+        : 1;
+    this.lastClickAt = now;
+    this.lastClickMask = event.buttons || 1;
+    this.lastClickX = event.clientX;
+    this.lastClickY = event.clientY;
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -148,8 +183,7 @@ export class TerminalSelectionController {
     this.lastClientY = event.clientY;
 
     const existingAnchor = event.shiftKey ? this.selection?.anchor : undefined;
-    this.mode =
-      event.detail >= 3 ? "line" : event.detail === 2 ? "word" : "character";
+    this.mode = modeForClickCount(this.pendingClickCount);
     const anchor = existingAnchor ?? point;
     this.anchorRange = this.rangeForPoint(anchor, this.mode);
     const focusRange = this.rangeForPoint(point, this.mode);
@@ -167,6 +201,9 @@ export class TerminalSelectionController {
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
     if (event.pointerId !== this.pointerId || !this.selection) return;
+    // Moving the pointer after a press breaks the click chain, so releasing a
+    // drag and pressing again at the same spot is not read as a double click.
+    this.pendingClickCount = 0;
     event.preventDefault();
     this.lastClientX = event.clientX;
     this.lastClientY = event.clientY;
@@ -303,6 +340,12 @@ export class TerminalSelectionController {
     // Native pins preserve the pending drag anchor across output and reflow.
     this.options.model.setSelection?.(this.selection);
   }
+}
+
+export function modeForClickCount(count: number): SelectionMode {
+  if (count >= 3) return "line";
+  if (count === 2) return "word";
+  return "character";
 }
 
 export function shouldStartTerminalSelection(

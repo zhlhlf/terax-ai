@@ -126,6 +126,9 @@ export type Preferences = {
   backgroundImageId: string | null;
   backgroundOpacity: number;
   backgroundBlur: number;
+  /** Alpha of the single backdrop layer used when no background image is set.
+   *  Drives both the main window and the settings window. */
+  frameOpacity: number;
   windowVibrancy: boolean;
   defaultModelId: ModelId;
   editorTheme: EditorThemePref;
@@ -158,6 +161,7 @@ export type Preferences = {
   editorWordWrapColumn: number;
   showHidden: boolean;
   explorerGitDecorations: boolean;
+  showHeaderSearch: boolean;
   terminalRenderer: "auto" | "webgl";
   terminalScreenReader: boolean;
   terminalCursorBlink: boolean;
@@ -220,6 +224,7 @@ const KEY_BG_KIND = "backgroundKind";
 const KEY_BG_IMAGE_ID = "backgroundImageId";
 const KEY_BG_OPACITY = "backgroundOpacity";
 const KEY_BG_BLUR = "backgroundBlur";
+const KEY_FRAME_OPACITY = "frameOpacity";
 const KEY_WINDOW_VIBRANCY = "windowVibrancy";
 const KEY_DEFAULT_MODEL = "defaultModelId";
 const KEY_EDITOR_THEME = "editorTheme";
@@ -255,6 +260,7 @@ const KEY_EDITOR_WORD_WRAP_COLUMN = "editorWordWrapColumn";
 const KEY_SHOW_HIDDEN = "showHidden";
 const LEGACY_KEY_SHOW_HIDDEN_DIRS = "showHiddenDirectories";
 const KEY_EXPLORER_GIT_DECORATIONS = "explorerGitDecorations";
+const KEY_SHOW_HEADER_SEARCH = "showHeaderSearch";
 const KEY_TERMINAL_RENDERER = "terminalRenderer";
 const KEY_TERMINAL_SCREEN_READER = "terminalScreenReader";
 const KEY_TERMINAL_CURSOR_BLINK = "terminalCursorBlink";
@@ -316,6 +322,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   backgroundImageId: null,
   backgroundOpacity: 0.5,
   backgroundBlur: 0,
+  frameOpacity: 0.66,
   defaultModelId: DEFAULT_MODEL_ID,
   editorTheme: EDITOR_THEME_AUTO,
   editorFontSize: EDITOR_FONT_SIZE_DEFAULT,
@@ -348,6 +355,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   editorWordWrapColumn: EDITOR_WORD_WRAP_COLUMN_DEFAULT,
   showHidden: false,
   explorerGitDecorations: true,
+  showHeaderSearch: false,
   terminalRenderer: "auto",
   terminalScreenReader: false,
   terminalCursorBlink: false,
@@ -411,6 +419,9 @@ export async function loadPreferences(): Promise<Preferences> {
     backgroundBlur: clampBlur(
       get<number>(KEY_BG_BLUR) ?? DEFAULT_PREFERENCES.backgroundBlur,
     ),
+    frameOpacity: clampFrameOpacity(
+      get<number>(KEY_FRAME_OPACITY) ?? DEFAULT_PREFERENCES.frameOpacity,
+    ),
     defaultModelId: ((): ModelId => {
       const stored = get<string>(KEY_DEFAULT_MODEL);
       return stored && isKnownModelId(stored)
@@ -438,6 +449,9 @@ export async function loadPreferences(): Promise<Preferences> {
     // hide the CSS-painted rounded corners, which is the bug that surfaced the
     // setting in the first place, so an absent key keeps the corners.
     windowVibrancy: get<boolean>(KEY_WINDOW_VIBRANCY) ?? false,
+    showHeaderSearch:
+      get<boolean>(KEY_SHOW_HEADER_SEARCH) ??
+      DEFAULT_PREFERENCES.showHeaderSearch,
     autocompleteEnabled:
       get<boolean>(KEY_AUTOCOMPLETE_ENABLED) ??
       DEFAULT_PREFERENCES.autocompleteEnabled,
@@ -627,6 +641,11 @@ function clampBgOpacity(v: number): number {
   return Math.min(1, Math.max(0, v));
 }
 
+function clampFrameOpacity(v: number): number {
+  if (!Number.isFinite(v)) return DEFAULT_PREFERENCES.frameOpacity;
+  return Math.min(1, Math.max(0.1, v));
+}
+
 function clampBlur(v: number): number {
   if (!Number.isFinite(v)) return 16;
   return Math.min(64, Math.max(0, Math.round(v)));
@@ -648,6 +667,10 @@ export async function setBackgroundOpacity(value: number): Promise<void> {
 
 export async function setBackgroundBlur(value: number): Promise<void> {
   await writePref(KEY_BG_BLUR, clampBlur(value));
+}
+
+export async function setFrameOpacity(value: number): Promise<void> {
+  await writePref(KEY_FRAME_OPACITY, clampFrameOpacity(value));
 }
 
 export async function setDefaultModel(value: ModelId): Promise<void> {
@@ -806,6 +829,10 @@ export async function setShowHidden(value: boolean): Promise<void> {
 
 export async function setExplorerGitDecorations(value: boolean): Promise<void> {
   await writePref(KEY_EXPLORER_GIT_DECORATIONS, value);
+}
+
+export async function setShowHeaderSearch(value: boolean): Promise<void> {
+  await writePref(KEY_SHOW_HEADER_SEARCH, value);
 }
 
 export async function setTerminalRenderer(
@@ -979,6 +1006,7 @@ export async function onPreferencesChange(
     [KEY_BG_IMAGE_ID]: "backgroundImageId",
     [KEY_BG_OPACITY]: "backgroundOpacity",
     [KEY_BG_BLUR]: "backgroundBlur",
+    [KEY_FRAME_OPACITY]: "frameOpacity",
     [KEY_WINDOW_VIBRANCY]: "windowVibrancy",
     [KEY_DEFAULT_MODEL]: "defaultModelId",
     [KEY_EDITOR_THEME]: "editorTheme",

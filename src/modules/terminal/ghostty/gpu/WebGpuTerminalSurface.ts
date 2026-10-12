@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { isPrimaryModifierPressed } from "@/lib/platform";
 import { terminalWindowFocused } from "@/modules/terminal/ghostty/renderScheduling";
 import { bindTerminalInteraction } from "@/modules/terminal/ghostty/input/terminalInteraction";
 import { TerminalScrollbarSync } from "@/modules/terminal/ghostty/gpu/terminalScrollbar";
@@ -24,11 +25,7 @@ import {
   TerminalFitQueue,
   type TerminalFitQueueDiagnostics,
 } from "./TerminalFitQueue";
-import {
-  rgbToCss,
-  type TerminalFontMetrics,
-  type TerminalGpuTheme,
-} from "./terminalVisuals";
+import type { TerminalFontMetrics, TerminalGpuTheme } from "./terminalVisuals";
 import {
   CELL_FLAG_OVERLINE,
   CELL_FLAG_STRIKETHROUGH,
@@ -167,7 +164,9 @@ export class WebGpuTerminalSurface
   private contentRevision: number;
   private hoveredCell = -1;
   private hoveredLink: string | null = null;
-  private mouseDownLink: string | null = null;
+  private linkPressCell = -1;
+  private pointerDownPoint: { clientX: number; clientY: number } | null = null;
+  private linkModifierDown = false;
   private applyingFit = false;
   private disposed = false;
 
@@ -249,10 +248,24 @@ export class WebGpuTerminalSurface
       },
     );
     this.root.addEventListener("pointerdown", this.handlePointerDown);
-    this.root.addEventListener("mousemove", this.handleLinkMouseMove);
-    this.root.addEventListener("mousedown", this.handleLinkMouseDown);
-    this.root.addEventListener("mouseup", this.handleLinkMouseUp);
-    this.root.addEventListener("mouseleave", this.handleLinkMouseLeave);
+    // Capture phase. The selection controller prevents the default on pointerdown,
+    // which makes the browser skip the derived compatibility mousedown, so a link
+    // gesture has to be read from the pointer events themselves. Capture also hands
+    // these handlers the gesture before the controller can claim it.
+    this.root.addEventListener("pointermove", this.handleLinkPointerMove, {
+      capture: true,
+    });
+    this.root.addEventListener("pointerdown", this.handleLinkPointerDown, {
+      capture: true,
+    });
+    this.root.addEventListener("pointerup", this.handleLinkPointerUp, {
+      capture: true,
+    });
+    this.root.addEventListener("pointerleave", this.handleLinkPointerLeave);
+    // Releasing or pressing a modifier does not move the pointer, so mousemove
+    // cannot be relied on to notice that the gesture stopped being a link click.
+    this.root.addEventListener("keydown", this.handleLinkModifierChange);
+    this.root.addEventListener("keyup", this.handleLinkModifierChange);
     this.scrollbar.addEventListener("scroll", this.handleScroll);
   }
 
@@ -448,7 +461,7 @@ export class WebGpuTerminalSurface
     if (revision !== this.contentRevision) {
       this.contentRevision = revision;
       if (this.hoveredCell >= 0) this.clearHoveredLink();
-      this.mouseDownLink = null;
+      this.linkPressCell = -1;
     }
     this.selection.reconcile();
     this.search.refreshOverlay();
@@ -483,7 +496,7 @@ export class WebGpuTerminalSurface
       colorAttachments: [
         {
           view: target,
-          clearValue: rgbClear(this.theme.background),
+          clearValue: TRANSPARENT_CLEAR,
           loadOp: "clear",
           storeOp: "store",
         },
@@ -597,10 +610,23 @@ export class WebGpuTerminalSurface
     this.selection.dispose();
     this.unsubscribeInteraction();
     this.root.removeEventListener("pointerdown", this.handlePointerDown);
-    this.root.removeEventListener("mousemove", this.handleLinkMouseMove);
-    this.root.removeEventListener("mousedown", this.handleLinkMouseDown);
-    this.root.removeEventListener("mouseup", this.handleLinkMouseUp);
-    this.root.removeEventListener("mouseleave", this.handleLinkMouseLeave);
+    this.root.removeEventListener(
+      "pointermove",
+      this.handleLinkPointerMove,
+      true,
+    );
+    this.root.removeEventListener(
+      "pointerdown",
+      this.handleLinkPointerDown,
+      true,
+    );
+    this.root.removeEventListener("pointerup", this.handleLinkPointerUp, true);
+    this.root.removeEventListener(
+      "pointerleave",
+      this.handleLinkPointerLeave,
+    );
+    this.root.removeEventListener("keydown", this.handleLinkModifierChange);
+    this.root.removeEventListener("keyup", this.handleLinkModifierChange);
     this.scrollbar.removeEventListener("scroll", this.handleScroll);
   }
 
@@ -609,31 +635,69 @@ export class WebGpuTerminalSurface
     else this.focus();
   };
 
-  private readonly handleLinkMouseMove = (event: MouseEvent): void => {
+  private readonly handleLinkPointerMove = (event: PointerEvent): void => {
+    this.noteLinkModifier(event);
     this.updateHoveredLink(event);
   };
 
-  private readonly handleLinkMouseDown = (event: MouseEvent): void => {
+  private readonly handleLinkPointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
+    this.noteLinkModifier(event);
     this.updateHoveredLink(event);
-    this.mouseDownLink = this.hoveredLink;
+    // The selection controller owns the press and will extend a selection to it,
+    // so a link click cannot be suppressed here. It is instead recognized on the
+    // release and reverted, by which point the selection is a single cell.
+    this.linkPressCell =
+      this.linkModifierDown && this.hoveredLink ? this.hoveredCell : -1;
   };
 
-  private readonly handleLinkMouseUp = (event: MouseEvent): void => {
+  private readonly handleLinkPointerUp = (event: PointerEvent): void => {
     if (event.button !== 0) return;
-    this.updateHoveredLink(event);
-    const uri = this.hoveredLink;
-    const activate = uri !== null && uri === this.mouseDownLink;
-    this.mouseDownLink = null;
-    if (!activate) return;
-    event.preventDefault();
+    this.noteLinkModifier(event);
+    const pressedCell = this.linkPressCell;
+    this.linkPressCell = -1;
+    if (!this.linkModifierDown || pressedCell < 0) return;
+    // A drag is a selection gesture, not a click, so the release has to land on
+    // the cell that was pressed.
+    if (this.cellAtClient(event.clientX, event.clientY) !== pressedCell) return;
+    // Resolve the cell that was pressed rather than whatever the pointer is over
+    // at release: pointer capture retargets the event, so the hover cache cannot
+    // be trusted to still describe the press.
+    const cols = this.options.model.cols;
+    const uri = this.options.model.hyperlinkAtViewportCell(
+      Math.floor(pressedCell / cols),
+      pressedCell % cols,
+    );
+    if (uri === null) return;
+    // Undo the selection the modifier press created, so opening a link leaves no
+    // stray highlight behind.
+    this.selection.clear();
     this.options.onOpenLink?.(uri);
   };
 
-  private readonly handleLinkMouseLeave = (): void => {
-    this.mouseDownLink = null;
+  private readonly handleLinkPointerLeave = (): void => {
+    this.linkPressCell = -1;
+    this.pointerDownPoint = null;
     this.clearHoveredLink();
   };
+
+  private readonly handleLinkModifierChange = (event: KeyboardEvent): void => {
+    if (event.key !== "Control" && event.key !== "Meta") return;
+    this.noteLinkModifier(event);
+    // Releasing the modifier mid-press must cancel the pending link click.
+    if (!this.linkModifierDown) this.linkPressCell = -1;
+    // The pointer has not moved, so re-resolve the cell under it to update the
+    // pointer cursor and drop a hover that is no longer actionable.
+    const point = this.pointerDownPoint;
+    if (point) this.updateHoveredLinkFromClient(point.clientX, point.clientY);
+  };
+
+  private noteLinkModifier(event: {
+    ctrlKey: boolean;
+    metaKey: boolean;
+  }): void {
+    this.linkModifierDown = isPrimaryModifierPressed(event);
+  }
 
   private readonly handleInteraction = (): void => {
     if (!this.host || !this.visible || this.documentSuspended) return;
@@ -652,36 +716,56 @@ export class WebGpuTerminalSurface
     }
   };
 
-  private updateHoveredLink(event: MouseEvent): void {
+  private updateHoveredLink(event: PointerEvent): void {
     if (
       !this.host ||
       this.scrollbar.contains(event.target as Node) ||
       (this.options.model.modes().mouseTracking && !event.shiftKey)
     ) {
+      this.pointerDownPoint = null;
       this.clearHoveredLink();
       return;
     }
+    this.pointerDownPoint = { clientX: event.clientX, clientY: event.clientY };
+    this.updateHoveredLinkFromClient(event.clientX, event.clientY);
+  }
+
+  private cellAtClient(clientX: number, clientY: number): number {
+    if (!this.host) return -1;
     const rect = this.root.getBoundingClientRect();
-    const column = Math.floor(
-      (event.clientX - rect.left) / this.metrics.cellWidth,
-    );
-    const row = Math.floor(
-      (event.clientY - rect.top) / this.metrics.cellHeight,
-    );
+    const column = Math.floor((clientX - rect.left) / this.metrics.cellWidth);
+    const row = Math.floor((clientY - rect.top) / this.metrics.cellHeight);
     if (
       column < 0 ||
       column >= this.options.model.cols ||
       row < 0 ||
       row >= this.options.model.rows
     ) {
+      return -1;
+    }
+    return row * this.options.model.cols + column;
+  }
+
+  private updateHoveredLinkFromClient(clientX: number, clientY: number): void {
+    if (!this.host) return;
+    const cell = this.cellAtClient(clientX, clientY);
+    if (cell < 0) {
       this.clearHoveredLink();
       return;
     }
-    const cell = row * this.options.model.cols + column;
-    if (cell === this.hoveredCell) return;
+    if (cell === this.hoveredCell) {
+      this.root.style.cursor =
+        this.linkModifierDown && this.hoveredLink ? "pointer" : "text";
+      return;
+    }
+    const columns = this.options.model.cols;
     this.hoveredCell = cell;
-    this.hoveredLink = this.options.model.hyperlinkAtViewportCell(row, column);
-    this.root.style.cursor = this.hoveredLink ? "pointer" : "text";
+    this.hoveredLink = this.options.model.hyperlinkAtViewportCell(
+      Math.floor(cell / columns),
+      cell % columns,
+    );
+    this.root.style.cursor =
+      this.linkModifierDown && this.hoveredLink ? "pointer" : "text";
   }
 
   private clearHoveredLink(): void {
@@ -696,7 +780,9 @@ export class WebGpuTerminalSurface
       this.context.configure({
         device: resources.device,
         format: resources.format,
-        alphaMode: "opaque",
+        // The surface blends with the app behind it, matching the pipelines'
+        // own src-alpha mixing.
+        alphaMode: "premultiplied",
       });
       this.scale = Math.max(1, window.devicePixelRatio || 1);
       this.atlasLease = this.runtime.acquireGlyphAtlas(
@@ -1096,6 +1182,9 @@ export class WebGpuTerminalSurface
           spanWidth,
           cellHeight,
           background,
+          // The default background paints nothing so the app backdrop shows
+          // through; selection, search hits and colored runs stay solid.
+          background === this.themeBackground ? 0 : 1,
           cells.underlineColorPacked(index),
           foreground,
           cellFlags,
@@ -1279,7 +1368,9 @@ export class WebGpuTerminalSurface
   }
 
   private updateRootBackground(): void {
-    this.root.style.backgroundColor = rgbToCss(this.theme.background);
+    // The root sits behind the canvas, so it stays clear rather than painting a
+    // second, opaque copy of the background over the translucent app surface.
+    this.root.style.backgroundColor = "transparent";
   }
 
   private assertLive(): void {
@@ -1323,14 +1414,11 @@ function packRgb(color: Rgb): number {
   return (color[0] << 16) | (color[1] << 8) | color[2];
 }
 
-function rgbClear(color: Rgb): GPUColor {
-  return {
-    r: color[0] / 255,
-    g: color[1] / 255,
-    b: color[2] / 255,
-    a: 1,
-  };
-}
+// Fully transparent black: the default background paints nothing, so the app
+// surface behind the terminal shows through. The colour channels have to be
+// zero as well, not the theme background, because the surface is composited
+// premultiplied and a zero-alpha pixel carrying colour would still add it.
+const TRANSPARENT_CLEAR: GPUColor = { r: 0, g: 0, b: 0, a: 0 };
 
 function fontMetricsKey(metrics: TerminalFontMetrics): string {
   return [

@@ -105,6 +105,59 @@ describe("WebGPU surface resource lifecycle", () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
+  it("opens a link only on a modifier click and never on a plain click", async () => {
+    const h = await harness();
+    const mouse = (
+      type: string,
+      init: { ctrlKey: boolean; button?: number },
+    ) => mouseAt(type, init, 16, 8);
+    const mouseAt = (
+      type: string,
+      init: { ctrlKey: boolean; button?: number },
+      clientX: number,
+      clientY: number,
+    ) => {
+      const event = new Event(type);
+      Object.defineProperties(event, {
+        clientX: { value: clientX },
+        clientY: { value: clientY },
+        ctrlKey: { value: init.ctrlKey },
+        button: { value: init.button ?? 0 },
+      });
+      return event;
+    };
+
+    // The grid is 8x16 px per cell, so this is column 2 row 0 of the linked run.
+    h.surface.eventTarget().dispatchEvent(mouse("pointermove", { ctrlKey: false }));
+    expect(h.surface.eventTarget().style.cursor).toBe("text");
+
+    h.surface.eventTarget().dispatchEvent(mouse("pointermove", { ctrlKey: true }));
+    expect(h.surface.eventTarget().style.cursor).toBe("pointer");
+
+    // A plain click over a link must stay a selection gesture.
+    h.surface.eventTarget().dispatchEvent(mouse("pointerdown", { ctrlKey: false }));
+    h.surface.eventTarget().dispatchEvent(mouse("pointerup", { ctrlKey: false }));
+    expect(h.onOpenLink).not.toHaveBeenCalled();
+
+    h.surface.eventTarget().dispatchEvent(mouse("pointerdown", { ctrlKey: true }));
+    h.surface.eventTarget().dispatchEvent(mouse("pointerup", { ctrlKey: true }));
+    expect(h.onOpenLink).toHaveBeenCalledWith("https://example.com");
+
+    // Releasing the modifier before the release cancels the activation.
+    h.onOpenLink.mockClear();
+    h.surface.eventTarget().dispatchEvent(mouse("pointerdown", { ctrlKey: true }));
+    h.surface.eventTarget().dispatchEvent(mouse("pointerup", { ctrlKey: false }));
+    expect(h.onOpenLink).not.toHaveBeenCalled();
+
+    // A drag starting on the link stays a selection, even with the modifier held.
+    h.onOpenLink.mockClear();
+    h.surface.eventTarget().dispatchEvent(mouse("pointerdown", { ctrlKey: true }));
+    h.surface.eventTarget().dispatchEvent(
+      mouseAt("pointerup", { ctrlKey: true }, 96, 8),
+    );
+    expect(h.onOpenLink).not.toHaveBeenCalled();
+  });
+
   it("prioritizes wheel interaction without scheduling idle or hidden work", async () => {
     const h = await harness();
     h.schedule.mockClear();
@@ -243,10 +296,15 @@ async function harness() {
       append: vi.fn(),
       appendChild: vi.fn(),
       remove: vi.fn(),
+      focus: vi.fn(),
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: () => false,
+      contains: () => false,
       getContext: () => context,
       getBoundingClientRect: () => {
         domWork();
-        return { width: 960, height: 640 };
+        return { left: 0, top: 0, width: 960, height: 640 };
       },
     });
     return value;
@@ -257,6 +315,9 @@ async function harness() {
     return value;
   };
   vi.stubGlobal("document", { createElement: element });
+  // The selection controller narrows an event target with `instanceof Node`,
+  // which is a browser global the node test environment does not provide.
+  vi.stubGlobal("Node", class {});
   vi.stubGlobal("window", { devicePixelRatio: 1, setTimeout, clearTimeout });
   vi.stubGlobal(
     "ResizeObserver",
@@ -304,6 +365,12 @@ async function harness() {
     deferPresentation: () => false,
     consumeDamage: vi.fn((): TerminalDamage => ({ kind: "none" })),
     viewportOriginLine: () => 0,
+    bufferLineAtViewportRow: (row: number) => row,
+    wordRangeAt: (point: { line: number; column: number }) => ({
+      start: point,
+      end: point,
+    }),
+    lineEndColumn: () => model.cols,
     renderCells: vi.fn(() => ({
       length: model.cols * model.rows,
       width: () => 1,
@@ -332,6 +399,8 @@ async function harness() {
       damage();
     }),
     modes: () => ({ alternateScreen: false }),
+    hyperlinkAtViewportCell: (row: number, column: number) =>
+      row === 0 && column >= 2 && column < 12 ? "https://example.com" : null,
     setPixelSize: vi.fn(),
     releasePresentationResources: vi.fn(),
     resize: (cols: number, rows: number) => {
@@ -351,6 +420,7 @@ async function harness() {
     getCurrentTexture: vi.fn(() => ({ createView: () => ({}) })),
   });
   const onError = vi.fn();
+  const onOpenLink = vi.fn();
   const surface = await WebGpuTerminalSurface.create({
     model: model as unknown as GhosttyTerminalModelApi,
     metrics: METRICS,
@@ -365,6 +435,7 @@ async function harness() {
     cursorStyle: "block",
     onResize: vi.fn(),
     onError,
+    onOpenLink,
   });
   surfaces.push(surface);
   surface.attach(element() as unknown as HTMLElement);
@@ -389,6 +460,7 @@ async function harness() {
     destroy,
     acquireGlyphAtlas,
     onError,
+    onOpenLink,
     visibility(visible: boolean, reclaim: boolean) {
       bridge.visible = visible;
       surface.handleVisibilityChange(visible, reclaim);

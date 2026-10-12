@@ -28,6 +28,9 @@ export const en = {
   "settings.general.language.description":
     "Interface language. Applies immediately across all windows.",
   "settings.general.explorer": "Explorer",
+  "settings.general.headerSearch.title": "Show top search bar",
+  "settings.general.headerSearch.description":
+    "Show the global search field in the title bar. Turn it off to give tabs more space.",
   "settings.general.showHidden.title": "Show hidden files",
   "settings.general.showHidden.description":
     "Include dot-prefixed files and folders (.env, .gitignore, .config) in the file explorer and search.",
@@ -189,6 +192,9 @@ export const en = {
   "settings.themes.replaceImage": "Replace image",
   "settings.themes.chooseImage": "Choose image",
   "settings.themes.opacity": "Opacity",
+  "settings.themes.frameOpacity": "Window transparency",
+  "settings.themes.frameOpacityHint":
+    "Used only while no background image is set. Lower means more of the desktop shows through.",
   "settings.themes.blur": "Blur",
   "settings.themes.dropHint":
     "Drop an image here or pick one. Stored locally; doesn't affect the default look until set.",
@@ -1206,6 +1212,10 @@ export const en = {
   "terminal.outputPaused.stalled":
     "Waiting for the terminal connection. Delivery will resume automatically.",
   "terminal.outputPaused.retry": "Retry",
+  "terminal.menu.copy": "Copy",
+  "terminal.menu.paste": "Paste",
+  "terminal.menu.selectAll": "Select All",
+  "terminal.menu.clear": "Clear",
 
   // ── Editor ──
   "editor.search.find": "Find",

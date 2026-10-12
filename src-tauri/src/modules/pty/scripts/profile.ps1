@@ -66,7 +66,10 @@ function global:__terax_install_readline {
                 $esc = [char]27
                 $cmd = $line -replace '[\x00-\x1F\x7F]', ' '
                 if ($cmd.Length -gt 256) { $cmd = $cmd.Substring(0, 256) }
-                [Console]::Write("$esc]133;C;$cmd$esc\")
+                # Use the PowerShell host writer, not [Console]: a direct
+                # console write desynchronizes PSReadLine's row bookkeeping
+                # after Clear-Host, causing later input redraws to jump up.
+                $Host.UI.Write("$esc]133;C;$cmd$esc\")
             }
         } catch {}
         $line
@@ -74,6 +77,16 @@ function global:__terax_install_readline {
 }
 
 function global:prompt {
+    # Plain terminal tabs must be indistinguishable from PowerShell outside
+    # Terax. Their PSReadLine redraws do not tolerate Terax's C marker, and
+    # injecting it adds a rendered row for every empty Enter. Block tabs
+    # suppress the native prompt and own input, so only they integrate here.
+    if (-not $env:TERAX_BLOCKS) {
+        if (Test-Path Function:__terax_user_prompt) {
+            return __terax_user_prompt
+        }
+        return "PS $((Get-Location).Path)> "
+    }
     __terax_install_readline
     $lec = $LASTEXITCODE
     if ($null -eq $lec) { $lec = if ($?) { 0 } else { 1 } }
@@ -94,12 +107,12 @@ function global:prompt {
     }
 
     # Block mode: the host renders its own input bar, so suppress the shell
-    # prompt (markers only) and reserve the header/gap rows in the prompt
-    # itself -- same layout contract as the zsh integration.
+    # prompt while retaining its OSC boundaries. Spacing belongs to the overlay;
+    # emitting newline characters here advances the real terminal grid and leaves
+    # blank rows between every PowerShell prompt.
     if ($env:TERAX_BLOCKS) {
         $global:LASTEXITCODE = $lec
-        $gap = if ($global:__terax_block_seen) { "`n`n" } else { "`n" }
-        return "$oscD$oscA$osc7$gap$oscB"
+        return "$oscD$oscA$osc7$oscB"
     }
 
     $original = if (Test-Path Function:__terax_user_prompt) {

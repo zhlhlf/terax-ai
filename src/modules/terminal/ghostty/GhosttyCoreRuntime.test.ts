@@ -532,6 +532,27 @@ describe("GhosttyCoreRuntime", () => {
     model.dispose();
   });
 
+  it("damages both cursor rows after a carriage-return line feed", async () => {
+    const runtime = new GhosttyCoreRuntime(() =>
+      TeraxGhostty.loadBytes(wasmBytes.slice(0)),
+    );
+    const model = await runtime.createModel({
+      leafId: 20,
+      cols: 20,
+      rows: 4,
+    });
+    try {
+      model.consumeDamage();
+      model.write(new TextEncoder().encode("prompt> \r\n"));
+      expect(model.consumeDamage()).toEqual({
+        kind: "rows",
+        ranges: [{ start: 0, end: 1 }],
+      });
+    } finally {
+      runtime.dispose();
+    }
+  });
+
   it("extracts linear and rectangular selections from scrollback", async () => {
     const runtime = new GhosttyCoreRuntime(() =>
       TeraxGhostty.loadBytes(wasmBytes.slice(0)),
@@ -583,6 +604,47 @@ describe("GhosttyCoreRuntime", () => {
         rectangular: false,
       }),
     ).toBe("abcdefghij");
+    model.dispose();
+  });
+
+  it("treats hyphens and underscores as word characters", async () => {
+    const runtime = new GhosttyCoreRuntime(() =>
+      TeraxGhostty.loadBytes(wasmBytes.slice(0)),
+    );
+    const model = await runtime.createModel({
+      leafId: 15,
+      cols: 20,
+      rows: 3,
+    });
+    model.write(new TextEncoder().encode("a foo-bar_baz c"));
+
+    expect(model.wordRangeAt({ line: 0, column: 4 })).toEqual({
+      start: 2,
+      end: 12,
+    });
+    model.dispose();
+  });
+
+  it("selects the visible viewport without trailing blank rows", async () => {
+    const runtime = new GhosttyCoreRuntime(() =>
+      TeraxGhostty.loadBytes(wasmBytes.slice(0)),
+    );
+    const model = await runtime.createModel({
+      leafId: 17,
+      cols: 10,
+      rows: 5,
+    });
+    model.write(new TextEncoder().encode("first\r\nsecond"));
+
+    model.selectViewport?.();
+    const selection = model.trackedSelection?.() ?? null;
+    if (!selection) throw new Error("selectViewport produced no selection");
+    expect(selection).toEqual({
+      anchor: { line: 0, column: 0 },
+      focus: { line: 1, column: 5 },
+      rectangular: false,
+    });
+    expect(model.selectionText(selection)).toBe("first\nsecond");
     model.dispose();
   });
 

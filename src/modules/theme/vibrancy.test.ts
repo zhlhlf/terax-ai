@@ -9,6 +9,7 @@ vi.mock("@tauri-apps/api/core", () => core);
 type FakeRoot = {
   attrs: Map<string, string>;
   style: { backgroundColor: string };
+  dataset: Record<string, string | undefined>;
 };
 
 function fakeDocument(): FakeRoot {
@@ -24,6 +25,16 @@ function fakeDocument(): FakeRoot {
     },
     hasAttribute(k: string) {
       return attrs.has(k);
+    },
+    // The real `dataset` is a live view over the `data-*` attributes, which is
+    // what `paintHtmlBase` reads to decide whether another layer owns the base.
+    dataset: {
+      get appAlpha() {
+        return attrs.get("data-app-alpha");
+      },
+      get vibrancy() {
+        return attrs.get("data-vibrancy");
+      },
     },
   };
   vi.stubGlobal("document", { documentElement: root });

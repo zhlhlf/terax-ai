@@ -53,6 +53,13 @@ export type TerminalModelDiagnostics = {
   readonly bridgeRowCapacity?: number;
   /** Periodic bridge resets that release fragmented render-state arenas. */
   readonly renderStateResets?: number;
+  /** Cursor position in viewport cells, and the viewport's scrollback offset.
+   * Reported so an input landing on the wrong row can be traced against the
+   * geometry the renderer is actually painting. */
+  readonly cursorRow?: number;
+  readonly cursorColumn?: number;
+  readonly viewportOffset?: number;
+  readonly viewportHistory?: number;
 };
 
 export interface TerminalModel {

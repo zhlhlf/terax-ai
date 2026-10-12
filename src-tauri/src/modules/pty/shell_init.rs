@@ -900,6 +900,12 @@ mod windows {
         use super::*;
 
         #[test]
+        fn powershell_readline_marker_uses_host_output() {
+            assert!(PROFILE_PS1.contains("$Host.UI.Write(\"$esc]133;C"));
+            assert!(!PROFILE_PS1.contains("[Console]::Write(\"$esc]133;C"));
+        }
+
+        #[test]
         fn builds_wsl_zsh_launch_spec_with_env_and_login() {
             let spec = build_wsl_launch_spec(
                 Some("/home/vinicios/repo"),

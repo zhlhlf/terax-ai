@@ -158,6 +158,7 @@ function harness() {
     scrollPosition: () => ({ history: 0, offset: 0 }),
     viewportOriginLine: () => 0,
     modes: () => ({ alternateScreen: false }),
+    hyperlinkAtViewportCell: () => null,
     setPixelSize: vi.fn(),
     resize: (cols: number, rows: number) => {
       model.cols = cols;

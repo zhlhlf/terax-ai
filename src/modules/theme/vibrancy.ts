@@ -26,6 +26,24 @@ export function applyVibrancy(enabled: boolean, dark: boolean): Promise<void> {
   return queue;
 }
 
+/**
+ * The `<html>` fill is the last opaque paint behind the app. It has to stand
+ * down whenever either the OS backdrop or the translucent app surface is the
+ * base, or that fill sits behind the 66% layer and hides the desktop. Reading
+ * the attributes at call time lets the two bridges each repaint without
+ * tracking each other's state.
+ */
+export function paintHtmlBase(dark: boolean): void {
+  const root = document.documentElement;
+  const backdropPaints =
+    root.dataset.appAlpha === "on" || root.dataset.vibrancy === "on";
+  root.style.backgroundColor = backdropPaints
+    ? ""
+    : dark
+      ? PREPAINT_BG.dark
+      : PREPAINT_BG.light;
+}
+
 async function run(enabled: boolean, dark: boolean): Promise<void> {
   const kind = await getBackdropKind();
   // The switch is the user's intent, not a platform capability: a kind of
@@ -38,13 +56,13 @@ async function run(enabled: boolean, dark: boolean): Promise<void> {
 
   const paintOpaque = () => {
     root.removeAttribute("data-vibrancy");
-    root.style.backgroundColor = dark ? PREPAINT_BG.dark : PREPAINT_BG.light;
+    paintHtmlBase(dark);
   };
 
   if (on) {
     root.setAttribute("data-vibrancy", "on");
     // The pre-paint colour parked on <html> sits in front of the backdrop.
-    root.style.backgroundColor = "";
+    paintHtmlBase(dark);
   } else {
     paintOpaque();
   }

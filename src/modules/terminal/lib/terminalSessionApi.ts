@@ -13,6 +13,7 @@ import {
   interruptGhosttySession,
   pasteIntoGhosttySession,
   respawnGhosttySession,
+  selectGhosttyViewport,
   submitToGhosttySession,
   whenGhosttySessionReady,
   writeToGhosttySession,
@@ -141,6 +142,14 @@ export function clearFocusedTerminal(): boolean {
   const ghosttyLeaf = ghosttyFocusedLeaf();
   if (ghosttyLeaf !== null) return clearGhosttySession(ghosttyLeaf);
   return false;
+}
+
+export function clearLeafTerminal(leafId: number): boolean {
+  return clearGhosttySession(leafId);
+}
+
+export function selectLeafViewport(leafId: number): boolean {
+  return selectGhosttyViewport(leafId);
 }
 
 export function leafIdForPty(ptyId: number): number | null {

@@ -109,6 +109,22 @@ jobs:
             echo "::warning::Updater signing secrets are not configured; updater artifacts will be skipped."
           fi
 
+      # Authenticode signing is independent of the updater key. Gating it on
+      # updater-signing shipped unsigned Windows installers whenever the updater
+      # secrets were absent, and an unsigned NSIS setup is exactly what Defender
+      # (Worm:Win32/AutoRun family) and SmartScreen flag.
+      - id: windows-signing
+        shell: bash
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          if [[ -n "$SIGNPATH_API_TOKEN" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SIGNPATH_API_TOKEN is not configured; Windows installers will ship unsigned."
+          fi
+
       - name: Write Apple API key to disk
         if: startsWith(matrix.platform, 'macos')
         shell: bash
@@ -181,6 +197,54 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      # Portable Windows build: the install layout minus the uninstaller, zipped
+      # with forward-slash entries. It gives Windows users an install-free option
+      # and skips the NSIS self-extractor path that Defender's heuristic
+      # Worm:Win32/AutoRun family trips over. Produced regardless of signing
+      # state, so it is always available as the fallback download.
+      - name: Package portable Windows zip
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $releaseDir = "src-tauri/target/${{ matrix.rust-target }}/release"
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $stage = "portable"
+
+          New-Item -ItemType Directory -Path "$stage/licenses/terminal" -Force | Out-Null
+          foreach ($file in @("terax.exe", "terax-cli.exe", "WebView2Loader.dll")) {
+            $source = Join-Path $releaseDir $file
+            if (-not (Test-Path $source)) { throw "Missing portable input: $source" }
+            Copy-Item $source $stage -Force
+          }
+          Copy-Item packages/ghostty-core/LICENSE "$stage/licenses/terminal/ghostty-web.txt"
+          Copy-Item packages/ghostty-core/adapted/LICENSE.ghostty "$stage/licenses/terminal/ghostty.txt"
+          Copy-Item packages/ghostty-core/adapted/LICENSE.restty "$stage/licenses/terminal/restty.txt"
+          Copy-Item src/modules/terminal/ghostty/webgl/LICENSE.xterm-js "$stage/licenses/terminal/xterm-js.txt"
+
+          # Compress-Archive writes OS separators, which is not the ZIP spec, so
+          # build the archive entry by entry with forward slashes.
+          Add-Type -AssemblyName System.IO.Compression
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = "Termax_${version}_x64-portable.zip"
+          $base = (Get-Item -LiteralPath $stage).FullName
+          $separator = [System.IO.Path]::DirectorySeparatorChar
+          $slash = [System.IO.Path]::AltDirectorySeparatorChar
+          $archive = [System.IO.Compression.ZipFile]::Open($zip, "Create")
+          try {
+            Get-ChildItem -LiteralPath $base -Recurse -File | ForEach-Object {
+              $entry = $_.FullName.Substring($base.Length + 1).Replace($separator, $slash)
+              [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive, $_.FullName, $entry,
+                [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+            }
+          } finally { $archive.Dispose() }
+
+          Write-Host "Packaged $zip ($((Get-Item $zip).Length) bytes)"
+          gh release upload $env:GITHUB_REF_NAME $zip --clobber --repo $env:GITHUB_REPOSITORY
 
       # Strip the bundled libwayland-* libs from the AppImage so it loads the
       # host copies at runtime. The Ubuntu 22.04 build host ships libwayland
@@ -259,7 +323,7 @@ jobs:
       # patch-updater-manifest job, after every matrix leg has merged, so a
       # parallel macOS/Linux upload cannot clobber the Windows signatures.
       - name: Stage Windows installers for SignPath
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.windows-signing.outputs.enabled == 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -277,7 +341,7 @@ jobs:
 
       - name: Upload unsigned Windows artifact
         id: upload-windows
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.windows-signing.outputs.enabled == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: windows-unsigned
@@ -288,7 +352,7 @@ jobs:
       # The default wait timeout is 600s; bumped so the job survives the time
       # it takes to review and approve the request during a release.
       - name: Submit Windows installers to SignPath
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.windows-signing.outputs.enabled == 'true'
         uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -302,7 +366,7 @@ jobs:
           output-artifact-directory: 'signed'
 
       - name: Re-sign updater and upload signed Windows installers
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.updater-signing.outputs.enabled == 'true'
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/') && steps.windows-signing.outputs.enabled == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -321,14 +385,24 @@ jobs:
           }
           Copy-Item $signedExe $env:EXE_REAL_PATH -Force
           Copy-Item $signedMsi $env:MSI_REAL_PATH -Force
-          Remove-Item "$($env:EXE_REAL_PATH).sig" -ErrorAction SilentlyContinue
-          Remove-Item "$($env:MSI_REAL_PATH).sig" -ErrorAction SilentlyContinue
-          pnpm tauri signer sign $env:EXE_REAL_PATH
-          pnpm tauri signer sign $env:MSI_REAL_PATH
           gh release upload $env:GITHUB_REF_NAME `
-            $env:EXE_REAL_PATH "$($env:EXE_REAL_PATH).sig" `
-            $env:MSI_REAL_PATH "$($env:MSI_REAL_PATH).sig" `
+            $env:EXE_REAL_PATH $env:MSI_REAL_PATH `
             --clobber --repo $env:GITHUB_REPOSITORY
+
+          # Authenticode changed the installer bytes, so the minisign updater
+          # signatures tauri-action produced over the unsigned files no longer
+          # match. Regenerate them when the updater key is configured.
+          if ($env:TAURI_SIGNING_PRIVATE_KEY) {
+            Remove-Item "$($env:EXE_REAL_PATH).sig" -ErrorAction SilentlyContinue
+            Remove-Item "$($env:MSI_REAL_PATH).sig" -ErrorAction SilentlyContinue
+            pnpm tauri signer sign $env:EXE_REAL_PATH
+            pnpm tauri signer sign $env:MSI_REAL_PATH
+            gh release upload $env:GITHUB_REF_NAME `
+              "$($env:EXE_REAL_PATH).sig" "$($env:MSI_REAL_PATH).sig" `
+              --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            Write-Host "Updater signing key absent; leaving updater signatures untouched."
+          }
 
   # Patch the re-signed AppImage and SignPath-signed Windows signatures into the
   # combined updater manifest. Runs once, after every matrix leg has finished

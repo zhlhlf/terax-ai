@@ -319,21 +319,6 @@ export const zhCN: Record<keyof typeof en, string> = {
   "header.window.restore": "还原",
   "header.window.close": "关闭",
 
-  // ── 状态栏 ────────────────────────────────────────────────────────────
-  "statusbar.noDirectory": "无目录",
-  "statusbar.home": "主目录",
-  "statusbar.breadcrumb.showHidden": "显示隐藏文件夹",
-  "statusbar.cwd.loading": "正在加载…",
-  "statusbar.cwd.noSubfolders": "无子文件夹",
-  "statusbar.env.title": "工作区环境",
-  "statusbar.env.windows": "Windows",
-  "statusbar.env.wsl": "WSL: {distro}",
-  "statusbar.env.windowsLocal": "Windows 本地",
-  "statusbar.env.loading": "正在加载 WSL 发行版...",
-  "statusbar.env.unavailable": "WSL 不可用",
-  "statusbar.env.noneFound": "未找到 WSL 发行版",
-  "statusbar.env.refresh": "刷新",
-
   // ── 标签页 ────────────────────────────────────────────────────────────
   "tab.new": "新建标签页",
   "tab.rename": "重命名",

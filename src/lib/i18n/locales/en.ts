@@ -317,21 +317,6 @@ export const en = {
   "header.window.restore": "Restore",
   "header.window.close": "Close",
 
-  // ── Status bar ────────────────────────────────────────────────────────
-  "statusbar.noDirectory": "no directory",
-  "statusbar.home": "Home",
-  "statusbar.breadcrumb.showHidden": "Show hidden folders",
-  "statusbar.cwd.loading": "Loading…",
-  "statusbar.cwd.noSubfolders": "No subfolders",
-  "statusbar.env.title": "Workspace environment",
-  "statusbar.env.windows": "Windows",
-  "statusbar.env.wsl": "WSL: {distro}",
-  "statusbar.env.windowsLocal": "Windows Local",
-  "statusbar.env.loading": "Loading WSL distros...",
-  "statusbar.env.unavailable": "WSL unavailable",
-  "statusbar.env.noneFound": "No WSL distros found",
-  "statusbar.env.refresh": "Refresh",
-
   // ── Tabs ──────────────────────────────────────────────────────────────
   "tab.new": "New tab",
   "tab.rename": "Rename",

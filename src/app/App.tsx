@@ -74,10 +74,7 @@ import {
   useThemeFileEditing,
 } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
-import {
-  useWorkspaceEnvStore,
-  type WorkspaceEnv,
-} from "@/modules/workspace";
+import { useWorkspaceEnvStore } from "@/modules/workspace";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -180,7 +177,6 @@ export default function App() {
     home,
     launchCwd,
     launchCwdResolved,
-    switchWorkspace,
     adoptWorkspaceEnv,
   } = useWorkspaceSwitcher({
     tabsRef,
@@ -198,16 +194,6 @@ export default function App() {
     activeIdRef.current = activeId;
     activeSpaceIdRef.current = activeSpaceId;
   }, [tabs, activeId, activeSpaceId]);
-
-  const handleWorkspaceChange = useCallback(
-    async (env: WorkspaceEnv) => {
-      const switched = await switchWorkspace(env);
-      if (switched && activeSpaceId) {
-        useSpaces.getState().setEnv(activeSpaceId, env);
-      }
-    },
-    [switchWorkspace, activeSpaceId],
-  );
 
   useSpacesBoot({
     ready: launchCwdResolved,
@@ -455,17 +441,6 @@ export default function App() {
   const openNewTab = useCallback(() => {
     newTab(inheritedCwdForNewTab());
   }, [newTab, inheritedCwdForNewTab]);
-
-  const sendCd = useCallback(
-    (path: string) => {
-      if (activeLeafId === null) return;
-      const term = terminalRefs.current.get(activeLeafId);
-      if (!term) return;
-      term.write(`cd ${quoteShellArg(path)}\r`);
-      term.focus();
-    },
-    [activeLeafId],
-  );
 
   const cdInNewTab = useCallback(
     (path: string) => {
@@ -1146,13 +1121,7 @@ export default function App() {
           </main>
 
           {!zenMode && (
-            <StatusBar
-              cwd={activeCwd}
-              filePath={activeFilePath}
-              home={home}
-              onCd={sendCd}
-              onWorkspaceChange={handleWorkspaceChange}
-            />
+            <StatusBar filePath={activeFilePath} />
           )}
 
           <AppAlphaBridge />

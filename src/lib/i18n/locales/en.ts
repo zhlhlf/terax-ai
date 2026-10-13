@@ -25,13 +25,9 @@ export const en = {
   "settings.general.language": "Language",
   "settings.general.language.description":
     "Interface language. Applies immediately across all windows.",
-  "settings.general.explorer": "Explorer",
   "settings.general.headerSearch.title": "Show top search bar",
   "settings.general.headerSearch.description":
     "Show the global search field in the title bar. Turn it off to give tabs more space.",
-  "settings.general.showHidden.title": "Show hidden files",
-  "settings.general.showHidden.description":
-    "Include dot-prefixed files and folders (.env, .gitignore, .config) in the file explorer and search.",
   "settings.general.terminal": "Terminal",
   "settings.general.renderer.title": "Terminal renderer",
   "settings.general.renderer.description":
@@ -261,11 +257,7 @@ export const en = {
   "shortcut.space.next": "Next space",
   "shortcut.space.prev": "Previous space",
   "shortcut.space.overview": "Open spaces",
-  "shortcut.explorer.search": "Search files",
   "shortcut.search.focus": "Find in tab",
-  "shortcut.sidebar.toggle": "Toggle file explorer",
-  "shortcut.explorer.focus": "Toggle file explorer focus",
-  "shortcut.explorer.toggleHidden": "Toggle hidden files",
   "shortcut.view.zoomIn": "Zoom in",
   "shortcut.view.zoomOut": "Zoom out",
   "shortcut.view.zoomReset": "Reset zoom",
@@ -307,7 +299,6 @@ export const en = {
 
   // ── Header / window chrome ────────────────────────────────────────────
   "header.settings.title": "Settings",
-  "header.toggleSidebar": "Toggle sidebar",
   "header.commandPalette": "Command palette",
   "header.search.label": "Search",
   "header.search.gitLabel": "Git search",
@@ -334,43 +325,6 @@ export const en = {
   "tab.newMenu.preview": "Preview",
   "tab.title.shell": "shell",
   "tab.title.preview": "preview",
-
-  // ── Explorer ──────────────────────────────────────────────────────────
-  "explorer.noDirectory": "No current directory",
-  "explorer.loading": "Loading…",
-  "explorer.search.placeholder": "Search files…",
-  "explorer.search.clear": "Clear search",
-  "explorer.search.searching": "Searching…",
-  "explorer.search.noMatches": "No matches",
-  "explorer.search.truncated": "Showing partial results, refine your query.",
-  "explorer.action.searchFiles": "Search files",
-  "explorer.action.newFile": "New file",
-  "explorer.action.newFolder": "New folder",
-  "explorer.action.refresh": "Refresh",
-  "explorer.input.newFile": "New file",
-  "explorer.input.newFolder": "New folder",
-  "explorer.menu.open": "Open",
-  "explorer.menu.openInTerminal": "Open in Terminal",
-  "explorer.menu.revealInFinder": "Reveal in Finder",
-  "explorer.menu.newFile": "New File",
-  "explorer.menu.newFolder": "New Folder",
-  "explorer.menu.copyPath": "Copy Path",
-  "explorer.menu.copyRelativePath": "Copy Relative Path",
-  "explorer.menu.delete": "Delete",
-  "explorer.menu.deleteCount": "Delete {count} items",
-  "explorer.menu.confirmDelete": "Click again to confirm",
-  "explorer.toast.deleteFailed": "Delete failed for one or more items",
-  "explorer.conflict.exists": '"{name}" already exists',
-  "explorer.conflict.replace": "Replace",
-  "explorer.conflict.skip": "Skip",
-  "explorer.toast.closeDestination": "Close destination before replacing",
-  "explorer.toast.moveFailed": "Move failed",
-  "explorer.toast.someMoveFailed": "Some items could not be moved",
-  "explorer.toast.copyFailed": "Copy failed: {error}",
-
-  // ── Sidebar rail ──────────────────────────────────────────────────────
-  "sidebar.view.files": "Files",
-  "sidebar.view.git": "Git",
 
   // ── Spaces ────────────────────────────────────────────────────────────
   "spaces.title": "Spaces",
@@ -462,13 +416,9 @@ export const en = {
   "palette.cmd.findContentInFiles": "Find content in files",
   "palette.cmd.searchCommandHistory": "Search command history",
   "palette.cmd.findInCurrentTab": "Find in current tab",
-  "palette.cmd.searchFilesByName": "Search files by name",
-  "palette.cmd.toggleFileExplorer": "Toggle file explorer",
-  "palette.cmd.toggleHiddenFiles": "Toggle hidden files",
   "palette.cmd.reason.noTerminalTab": "No terminal tab",
   "palette.cmd.reason.paneLimit": "Pane limit",
   "palette.cmd.reason.lastTab": "Last tab",
-  "palette.cmd.reason.noWorkspaceRoot": "No workspace root",
   "palette.cmd.reason.currentSpace": "Current space",
   "palette.cmd.reason.noSearchableView": "No searchable view",
 
@@ -533,7 +483,6 @@ export const en = {
   "palette.group.tabs": "Tabs",
   "palette.group.panes": "Panes",
   "palette.group.search": "Search",
-  "palette.group.view": "View",
 
   // ── App ──
   "app.workspace.dirtySwitch":

@@ -24,7 +24,6 @@ function baseContext(
     tabs: [terminalTab(1)],
     activeId: 1,
     searchTarget: "content" as never,
-    explorerRoot: "/workspace",
     home: "/home/me",
     spaces: [],
     activeSpaceId: null,
@@ -34,9 +33,6 @@ function baseContext(
     splitPaneRight: noop,
     splitPaneDown: noop,
     focusSearch: noop,
-    focusExplorerSearch: noop,
-    toggleSidebar: noop,
-    toggleHiddenFiles: noop,
     openSettings: noop,
     openKeyboardShortcuts: noop,
     openSpacesOverview: noop,
@@ -78,12 +74,6 @@ describe("createCommandItems", () => {
   it("disables content search when there is no searchable view", () => {
     expect(reasonById({ searchTarget: null as never }, "search.focus")).toBe(
       "No searchable view",
-    );
-  });
-
-  it("disables explorer search when there is no workspace root", () => {
-    expect(reasonById({ explorerRoot: null }, "explorer.search")).toBe(
-      "No workspace root",
     );
   });
 

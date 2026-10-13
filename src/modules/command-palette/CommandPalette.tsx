@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useT } from "@/lib/i18n";
-import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
+import { fileIconUrl } from "@/lib/fileIcons/iconResolver";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
   getBindingTokens,
@@ -45,14 +45,12 @@ const GROUP_LABEL_KEY: Record<
   | "palette.group.tabs"
   | "palette.group.panes"
   | "palette.group.search"
-  | "palette.group.view"
 > = {
   General: "palette.group.general",
   Spaces: "palette.group.spaces",
   Tabs: "palette.group.tabs",
   Panes: "palette.group.panes",
   Search: "palette.group.search",
-  View: "palette.group.view",
 };
 
 type Props = {

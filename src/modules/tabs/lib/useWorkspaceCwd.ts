@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Tab } from "./useTabs";
 
 type Result = {
-  explorerRoot: string | null;
+  workspaceRoot: string | null;
   inheritedCwdForNewTab: () => string | undefined;
 };
 
@@ -19,7 +19,7 @@ export function useWorkspaceCwd(
     }
   }, [activeTab]);
 
-  const explorerRoot = useMemo<string | null>(() => {
+  const workspaceRoot = useMemo<string | null>(() => {
     if (activeTab?.kind === "terminal" && activeTab.cwd) return activeTab.cwd;
     if (lastTerminalCwd.current) return lastTerminalCwd.current;
     const anyTerm = tabs.find((t) => t.kind === "terminal" && t.cwd);
@@ -35,5 +35,5 @@ export function useWorkspaceCwd(
     return lastTerminalCwd.current ?? home ?? undefined;
   }, [activeTab, home]);
 
-  return { explorerRoot, inheritedCwdForNewTab };
+  return { workspaceRoot, inheritedCwdForNewTab };
 }

@@ -32,7 +32,7 @@ A change to PTY spawning, workspace authorization, file IO, IPC, or renderer lif
 The webview does not access the filesystem, processes, or shells directly. Rust owns OS access and exposes a narrow IPC surface:
 
 - `pty::*`: long-lived interactive sessions, raw input, credit-based output, exit reporting, and workspace-gated spawning.
-- `fs::*`: file explorer, editor IO, search, grep, glob, and mutation.
+- `fs::*`: editor IO, search, grep, glob, and mutation.
 - `shell::*`: one-shot and background shell helpers used by non-interactive features.
 - `workspace::*`: authorized workspace roots and WSL helpers.
 - `lsp::*`: language-server process hosting and framed JSON-RPC transport.
@@ -48,7 +48,6 @@ Shells are native. Terax does not inject profiles or wrapper scripts. `shell_ini
 - `app/`: workspace composition, tabs, panes, command handling, global shortcuts.
 - `modules/terminal/`: Ghostty VT models, rendering, PTY transport, and tab lifecycle.
 - `modules/editor/`: CodeMirror editor stack, buffers, formatting, themes, and LSP integration.
-- `modules/explorer/`: file tree, search, file operations, and drag-and-drop.
 - `modules/settings/`: settings app and persistence.
 - `modules/markdown/`: preview rendering.
 - `modules/spaces/`: workspace spaces and persisted layout.

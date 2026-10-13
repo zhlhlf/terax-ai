@@ -20,7 +20,7 @@ import {
   EXPOSED_LANGUAGES,
 } from "@/modules/editor/lib/languageDefinitions";
 import { resolveDisplayName } from "@/modules/editor/lib/languageResolver";
-import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
+import { fileIconUrl } from "@/lib/fileIcons/iconResolver";
 import {
   ArrowRight01Icon,
   Cancel01Icon,

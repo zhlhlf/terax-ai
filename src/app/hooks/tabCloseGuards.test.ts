@@ -59,7 +59,7 @@ describe("close-many hazards", () => {
   });
 });
 
-describe("path-backed explorer mutations", () => {
+describe("path-backed tab mutations", () => {
   const editor = (
     id: number,
     path: string,

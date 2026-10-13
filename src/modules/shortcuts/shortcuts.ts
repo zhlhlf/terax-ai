@@ -27,15 +27,11 @@ export type ShortcutId =
   | "terminal.clear"
   | "terminal.toggleInput"
   | "search.focus"
-  | "explorer.search"
-  | "explorer.focus"
-  | "explorer.toggleHidden"
   | "view.zoomIn"
   | "view.zoomOut"
   | "view.zoomReset"
   | "view.zenMode"
   | "settings.open"
-  | "sidebar.toggle"
   | "editor.undo"
   | "editor.redo"
   | "editor.save"
@@ -207,42 +203,10 @@ export const SHORTCUTS: Shortcut[] = [
     defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "s" }],
   },
   {
-    id: "explorer.search",
-    label: "shortcut.explorer.search",
-    group: "Search",
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "f" }],
-  },
-  {
     id: "search.focus",
     label: "shortcut.search.focus",
     group: "Search",
     defaultBindings: [{ [MOD_PROP]: true, key: "f" }],
-  },
-  {
-    id: "sidebar.toggle",
-    label: "shortcut.sidebar.toggle",
-    group: "View",
-    // Plain Mod+B toggles the sidebar everywhere EXCEPT a focused terminal,
-    // where it's handed to the shell / Claude Code (its "run in background"
-    // key). Mod+Shift+B always toggles, including from inside a terminal.
-    defaultBindings: [
-      { [MOD_PROP]: true, key: "b" },
-      { [MOD_PROP]: true, shift: true, key: "b" },
-    ],
-  },
-  {
-    id: "explorer.focus",
-    label: "shortcut.explorer.focus",
-    group: "View",
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "e" }],
-  },
-  {
-    id: "explorer.toggleHidden",
-    label: "shortcut.explorer.toggleHidden",
-    group: "View",
-    // Finder's toggle. The binding is on the physical Period key, so it holds
-    // on layouts where Shift+. types something else.
-    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "." }],
   },
   {
     id: "view.zoomIn",

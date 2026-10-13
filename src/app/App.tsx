@@ -1,11 +1,5 @@
-﻿import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { quoteShellArg } from "@/lib/shellQuote";
 import { consumeLaunchFiles, getLaunchDir } from "@/lib/launchDir";
 import { native } from "@/lib/native";
 import { useZoom } from "@/lib/useZoom";
@@ -17,7 +11,6 @@ import {
   useApplyEditorFontSize,
   useEditorFileSync,
 } from "@/modules/editor";
-import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import {
   Header,
   type SearchInlineHandle,
@@ -26,19 +19,12 @@ import {
 import { setLspNavigator } from "@/modules/lsp";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
-import { usePreferencesStore } from "@/modules/settings/preferences";
-import { setShowHidden } from "@/modules/settings/store";
 import {
   type ShortcutHandlers,
   type ShortcutId,
   shouldDisablePaneSwapShortcut,
   useGlobalShortcuts,
 } from "@/modules/shortcuts";
-import {
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
-  useSidebarPanel,
-} from "@/modules/sidebar";
 import {
   SpaceSwitcher,
   useSpacePersistence,
@@ -89,8 +75,6 @@ import { CloseDialogs } from "./components/CloseDialogs";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
 import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import {
-  hasOpenPathTab,
-  renamedPath,
   spacesEmptiedByTabs,
 } from "./hooks/tabCloseGuards";
 import { useTabCloseGuards } from "./hooks/useTabCloseGuards";
@@ -154,8 +138,7 @@ export default function App() {
     useState<EditorPaneHandle | null>(null);
   const { zoomIn, zoomOut, zoomReset } = useZoom();
   useApplyEditorFontSize();
-  const terminalPathDropTarget = useTerminalFileDrop();
-  const explorerRef = useRef<FileExplorerHandle>(null);
+  useTerminalFileDrop();
 
   // Drives session disposal off the pane tree, not React lifecycles 鈥?
   // split/unsplit re-mount components but the leaf is still live.
@@ -246,18 +229,6 @@ export default function App() {
     [tabs, activeSpaceId],
   );
 
-  const {
-    sidebarRef,
-    sidebarWidthRef,
-    sidebarView,
-    initialSidebarCollapsed,
-    persistSidebarCollapsed,
-    toggleSidebar,
-    openSidebarView,
-    persistSidebarWidth,
-    toggleExplorerFocus,
-  } = useSidebarPanel(explorerRef);
-
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteInitialMode, setPaletteInitialMode] = useState<
     "commands" | "content"
@@ -276,13 +247,13 @@ export default function App() {
   useEditorFileSync({ tabs, tabsRef, editorRefs });
   useThemeFileEditing({ tabsRef, openFileTab });
 
-  const { explorerRoot, inheritedCwdForNewTab } = useWorkspaceCwd(
+  const { workspaceRoot, inheritedCwdForNewTab } = useWorkspaceCwd(
     activeTab,
     tabs,
     launchCwd ?? home,
   );
 
-  useWindowTitle(activeTab, explorerRoot);
+  useWindowTitle(activeTab, workspaceRoot);
 
   useEffect(() => {
     setActiveSearchAddon(
@@ -355,7 +326,6 @@ export default function App() {
     cancelDeleteClose,
     confirmCloseMany,
     cancelCloseMany,
-    handlePathsDeleted,
   } = useTabCloseGuards({
     tabs,
     activeId,
@@ -437,25 +407,9 @@ export default function App() {
     return null;
   }, [tabs, activeId]);
 
-      // selections 鈥?keeps file-explorer decoupled from the AI module.
   const openNewTab = useCallback(() => {
     newTab(inheritedCwdForNewTab());
   }, [newTab, inheritedCwdForNewTab]);
-
-  const cdInNewTab = useCallback(
-    (path: string) => {
-      const tabId = newTab(path);
-      setTimeout(() => {
-        const tab = tabsRef.current.find((x) => x.id === tabId);
-        if (!tab || tab.kind !== "terminal") return;
-        const t = terminalRefs.current.get(tab.activeLeafId);
-        if (!t) return;
-        t.write(`cd ${quoteShellArg(path)}\r`);
-        t.focus();
-      }, 80);
-    },
-    [newTab],
-  );
 
   const handleOpenFile = useCallback(
     (path: string, pin?: boolean) => {
@@ -507,27 +461,6 @@ export default function App() {
     })();
   }, [booted, openLaunchFiles]);
 
-  const handleExplorerPathRenamed = useCallback(
-    (from: string, to: string) => {
-      for (const tab of tabsRef.current) {
-        if (tab.kind !== "editor" && tab.kind !== "markdown") continue;
-        const path = renamedPath(tab.path, from, to);
-        if (path === null) continue;
-        const i = path.lastIndexOf("/");
-        updateTab(tab.id, {
-          path,
-          title: i === -1 ? path : path.slice(i + 1),
-        });
-      }
-    },
-    [updateTab],
-  );
-
-  const canReplaceExplorerPath = useCallback(
-    (path: string) => !hasOpenPathTab(tabsRef.current, path),
-    [],
-  );
-
   const activeTerminalLeafCwd =
     activeTab?.kind === "terminal"
       ? (findLeafCwd(activeTab.paneTree, activeTab.activeLeafId) ??
@@ -537,14 +470,6 @@ export default function App() {
 
   const activeFilePath =
     activeTab?.kind === "editor" ? activeTab.path : null;
-  const explorerActiveFilePath =
-    activeTab?.kind === "editor" || activeTab?.kind === "markdown"
-      ? activeTab.path
-      : null;
-  const toggleHiddenFiles = useCallback(() => {
-    openSidebarView("explorer");
-    void setShowHidden(!usePreferencesStore.getState().showHidden);
-  }, [openSidebarView]);
 
   const openPreviewTab = useCallback(
     (url: string) => {
@@ -634,9 +559,6 @@ export default function App() {
         else searchInlineRef.current?.focus();
       },
       "settings.open": () => void openSettingsWindow(),
-      "sidebar.toggle": toggleSidebar,
-      "explorer.focus": toggleExplorerFocus,
-      "explorer.toggleHidden": toggleHiddenFiles,
       "view.zoomIn": zoomIn,
       "view.zoomOut": zoomOut,
       "view.zoomReset": zoomReset,
@@ -662,9 +584,6 @@ export default function App() {
       splitActivePaneInActiveTab,
       focusNextPaneInTab,
       swapActivePane,
-      toggleSidebar,
-      toggleExplorerFocus,
-      toggleHiddenFiles,
       zoomIn,
       zoomOut,
       zoomReset,
@@ -692,17 +611,6 @@ export default function App() {
         const target =
           (e.target as HTMLElement | null) ?? document.activeElement;
         return !isTerminalSurfaceTarget(target);
-      }
-      if (id === "sidebar.toggle") {
-        // Ctrl+B is also Claude Code's "run in background" key. While a terminal
-        // is focused, let Ctrl+B reach the shell/Claude instead of toggling the
-        // sidebar. Ctrl+Shift+B (second binding) still toggles it from anywhere.
-        const target =
-          (e.target as HTMLElement | null) ?? document.activeElement;
-        const inTerminal = isTerminalSurfaceTarget(target);
-        // Only defer the plain (no-shift) Ctrl/鈱?B binding; the Shift variant
-        // is the always-on toggle and is never claimed by the terminal.
-        return inTerminal && !e.shiftKey;
       }
       return false;
     },
@@ -908,7 +816,6 @@ export default function App() {
             tabs,
             activeId,
             searchTarget,
-            explorerRoot,
             home,
             openNewTab,
             openNewPreview: () => openPreviewTab(""),
@@ -916,9 +823,6 @@ export default function App() {
             splitPaneRight: () => splitActivePaneInActiveTab("row"),
             splitPaneDown: () => splitActivePaneInActiveTab("col"),
             focusSearch: () => searchInlineRef.current?.focus(),
-            focusExplorerSearch: () => explorerRef.current?.focusSearch(),
-            toggleSidebar,
-            toggleHiddenFiles,
             openSettings: () => void openSettingsWindow(),
             openKeyboardShortcuts: () => void openSettingsWindow("shortcuts"),
             spaces: useSpaces.getState().spaces,
@@ -933,14 +837,11 @@ export default function App() {
       tabs,
       activeId,
       searchTarget,
-      explorerRoot,
       home,
       openNewTab,
       openPreviewTab,
       handleCloseTabOrPane,
       splitActivePaneInActiveTab,
-      toggleSidebar,
-      toggleHiddenFiles,
       activeSpaceId,
       handleNewSpace,
     ],
@@ -1033,7 +934,6 @@ export default function App() {
               onPin={pinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
-              onToggleSidebar={toggleSidebar}
               onOpenCommandPalette={() => openCommandPalette("commands")}
               onOpenSettings={() => void openSettingsWindow()}
               spaceSwitcher={spaceSwitcher}
@@ -1044,56 +944,7 @@ export default function App() {
           )}
 
           <main className="zoom-content flex min-h-0 flex-1 flex-col">
-            <ResizablePanelGroup
-              orientation="horizontal"
-              className="min-h-0 flex-1"
-              onLayoutChanged={(_, { isUserInteraction }) => {
-                const width = sidebarRef.current?.getSize().inPixels ?? 0;
-                persistSidebarWidth(width, isUserInteraction);
-              }}
-            >
-              <ResizablePanel
-                id="sidebar"
-                panelRef={sidebarRef}
-                defaultSize={
-                  initialSidebarCollapsed
-                    ? "0px"
-                    : `${sidebarWidthRef.current}px`
-                }
-                minSize={`${SIDEBAR_MIN_WIDTH}px`}
-                maxSize={`${SIDEBAR_MAX_WIDTH}px`}
-                collapsible
-                collapsedSize={0}
-                onResize={(size) => {
-                  persistSidebarCollapsed(size.inPixels <= 0);
-                }}
-              >
-                <div className="h-full min-h-0 pl-2 pr-0.5">
-                  <div className="terax-pane flex h-full min-h-0 flex-col">
-                    <div
-                      key={sidebarView}
-                      className="min-h-0 flex-1 terax-panel-in"
-                    >
-                      {sidebarView === "explorer" ? (
-                        <FileExplorer
-                          ref={explorerRef}
-                          rootPath={explorerRoot}
-                          activeFilePath={explorerActiveFilePath}
-                          onOpenFile={handleOpenFile}
-                          onPathRenamed={handleExplorerPathRenamed}
-                          onPathsDeleted={handlePathsDeleted}
-                          canReplacePath={canReplaceExplorerPath}
-                          onRevealInTerminal={cdInNewTab}
-                          pathDropTarget={terminalPathDropTarget}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </ResizablePanel>
-              <ResizableHandle className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border" />
-              <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div className="h-full min-h-0 pl-0.5 pr-2">
+            <div className="h-full min-h-0 pl-0.5 pr-2">
                   <div className="terax-pane flex h-full min-h-0 flex-col">
                     <div className="relative min-h-0 flex-1">
                       <WorkspaceSurface
@@ -1116,8 +967,6 @@ export default function App() {
 
                   </div>
                 </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
           </main>
 
           {!zenMode && (
@@ -1138,7 +987,7 @@ export default function App() {
             onOpenChange={setCommandPaletteOpen}
             initialMode={paletteInitialMode}
             commandItems={commandPaletteItems}
-            workspaceRoot={explorerRoot}
+            workspaceRoot={workspaceRoot}
             onOpenContentHit={openContentHit}
             insertCommand={insertHistoryCommand}
           />

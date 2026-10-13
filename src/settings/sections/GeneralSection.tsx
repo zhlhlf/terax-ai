@@ -23,7 +23,6 @@ import {
   setDefaultWorkspaceEnv,
   setLanguage,
   setRestoreWindowState,
-  setShowHidden,
   setShowHeaderSearch,
   setTerminalCursorBlink,
   setTerminalCursorStyle,
@@ -91,7 +90,6 @@ export function GeneralSection() {
   const language = usePreferencesStore((s) => s.language);
   const autostart = usePreferencesStore((s) => s.autostart);
   const restoreWindowState = usePreferencesStore((s) => s.restoreWindowState);
-  const showHidden = usePreferencesStore((s) => s.showHidden);
   const showHeaderSearch = usePreferencesStore((s) => s.showHeaderSearch);
   const terminalRenderer = usePreferencesStore((s) => s.terminalRenderer);
   const terminalScreenReader = usePreferencesStore(
@@ -227,27 +225,15 @@ export function GeneralSection() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label>{t("settings.general.explorer")}</Label>
-        <SettingRow
-          title={t("settings.general.headerSearch.title")}
-          description={t("settings.general.headerSearch.description")}
-        >
-          <Switch
-            checked={showHeaderSearch}
-            onCheckedChange={(value) => void setShowHeaderSearch(value)}
-          />
-        </SettingRow>
-        <SettingRow
-          title={t("settings.general.showHidden.title")}
-          description={t("settings.general.showHidden.description")}
-        >
-          <Switch
-            checked={showHidden}
-            onCheckedChange={(v) => void setShowHidden(v)}
-          />
-        </SettingRow>
-      </div>
+      <SettingRow
+        title={t("settings.general.headerSearch.title")}
+        description={t("settings.general.headerSearch.description")}
+      >
+        <Switch
+          checked={showHeaderSearch}
+          onCheckedChange={(value) => void setShowHeaderSearch(value)}
+        />
+      </SettingRow>
 
       <div className="flex flex-col gap-2">
         <Label>{t("settings.general.terminal")}</Label>

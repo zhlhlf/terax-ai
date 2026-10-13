@@ -3,7 +3,7 @@ import {
   parentDir,
   watchAdd,
   watchRemove,
-} from "@/modules/explorer/lib/watch";
+} from "@/lib/fsWatch";
 import type { Tab } from "@/modules/tabs";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { type RefObject, useEffect, useRef } from "react";

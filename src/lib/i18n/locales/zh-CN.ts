@@ -30,13 +30,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   "settings.general.language": "语言",
   "settings.general.language.description":
     "界面语言。切换后立即在所有窗口生效。",
-  "settings.general.explorer": "文件浏览器",
   "settings.general.headerSearch.title": "显示顶部搜索框",
   "settings.general.headerSearch.description":
     "在标题栏显示全局搜索框。关闭后可为标签页腾出更多空间。",
-  "settings.general.showHidden.title": "显示隐藏文件",
-  "settings.general.showHidden.description":
-    "在文件浏览器和搜索中包含以点开头的文件与文件夹（.env、.gitignore、.config）。",
   "settings.general.terminal": "终端",
   "settings.general.renderer.title": "终端渲染器",
   "settings.general.renderer.description":
@@ -261,11 +257,7 @@ export const zhCN: Record<keyof typeof en, string> = {
   "shortcut.space.next": "下一个空间",
   "shortcut.space.prev": "上一个空间",
   "shortcut.space.overview": "打开空间",
-  "shortcut.explorer.search": "搜索文件",
   "shortcut.search.focus": "在标签页内查找",
-  "shortcut.sidebar.toggle": "切换文件浏览器",
-  "shortcut.explorer.focus": "切换文件浏览器焦点",
-  "shortcut.explorer.toggleHidden": "切换隐藏文件显示",
   "shortcut.view.zoomIn": "放大",
   "shortcut.view.zoomOut": "缩小",
   "shortcut.view.zoomReset": "重置缩放",
@@ -309,7 +301,6 @@ export const zhCN: Record<keyof typeof en, string> = {
 
   // ── 顶栏 / 窗口控件 ───────────────────────────────────────────────────
   "header.settings.title": "设置",
-  "header.toggleSidebar": "切换侧边栏",
   "header.commandPalette": "命令面板",
   "header.search.label": "搜索",
   "header.search.gitLabel": "Git 搜索",
@@ -336,43 +327,6 @@ export const zhCN: Record<keyof typeof en, string> = {
   "tab.newMenu.preview": "预览",
   "tab.title.shell": "shell",
   "tab.title.preview": "preview",
-
-  // ── 文件浏览器 ────────────────────────────────────────────────────────
-  "explorer.noDirectory": "无当前目录",
-  "explorer.loading": "正在加载…",
-  "explorer.search.placeholder": "搜索文件…",
-  "explorer.search.clear": "清除搜索",
-  "explorer.search.searching": "正在搜索…",
-  "explorer.search.noMatches": "无匹配结果",
-  "explorer.search.truncated": "仅显示部分结果，请细化查询条件。",
-  "explorer.action.searchFiles": "搜索文件",
-  "explorer.action.newFile": "新建文件",
-  "explorer.action.newFolder": "新建文件夹",
-  "explorer.action.refresh": "刷新",
-  "explorer.input.newFile": "新建文件",
-  "explorer.input.newFolder": "新建文件夹",
-  "explorer.menu.open": "打开",
-  "explorer.menu.openInTerminal": "在终端中打开",
-  "explorer.menu.revealInFinder": "在文件管理器中显示",
-  "explorer.menu.newFile": "新建文件",
-  "explorer.menu.newFolder": "新建文件夹",
-  "explorer.menu.copyPath": "复制路径",
-  "explorer.menu.copyRelativePath": "复制相对路径",
-  "explorer.menu.delete": "删除",
-  "explorer.menu.deleteCount": "删除 {count} 个项目",
-  "explorer.menu.confirmDelete": "再次点击以确认",
-  "explorer.toast.deleteFailed": "一个或多个项目删除失败",
-  "explorer.conflict.exists": "「{name}」已存在",
-  "explorer.conflict.replace": "替换",
-  "explorer.conflict.skip": "跳过",
-  "explorer.toast.closeDestination": "替换前请先关闭目标文件",
-  "explorer.toast.moveFailed": "移动失败",
-  "explorer.toast.someMoveFailed": "部分项目无法移动",
-  "explorer.toast.copyFailed": "复制失败：{error}",
-
-  // ── 侧边栏栏 ──────────────────────────────────────────────────────────
-  "sidebar.view.files": "文件",
-  "sidebar.view.git": "Git",
 
   // ── 空间 ──────────────────────────────────────────────────────────────
   "spaces.title": "空间",
@@ -461,13 +415,9 @@ export const zhCN: Record<keyof typeof en, string> = {
   "palette.cmd.findContentInFiles": "在文件中查找内容",
   "palette.cmd.searchCommandHistory": "搜索命令历史",
   "palette.cmd.findInCurrentTab": "在当前标签页中查找",
-  "palette.cmd.searchFilesByName": "按名称搜索文件",
-  "palette.cmd.toggleFileExplorer": "切换文件浏览器",
-  "palette.cmd.toggleHiddenFiles": "切换隐藏文件",
   "palette.cmd.reason.noTerminalTab": "无终端标签页",
   "palette.cmd.reason.paneLimit": "窗格已达上限",
   "palette.cmd.reason.lastTab": "最后一个标签页",
-  "palette.cmd.reason.noWorkspaceRoot": "无工作区根目录",
   "palette.cmd.reason.currentSpace": "当前空间",
   "palette.cmd.reason.noSearchableView": "无可搜索的视图",
 
@@ -528,7 +478,6 @@ export const zhCN: Record<keyof typeof en, string> = {
   "palette.group.tabs": "标签页",
   "palette.group.panes": "窗格",
   "palette.group.search": "搜索",
-  "palette.group.view": "视图",
 
   // ── App ──
   "app.workspace.dirtySwitch": "切换工作区前请保存或关闭未保存的编辑器标签页。",

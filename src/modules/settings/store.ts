@@ -117,7 +117,6 @@ export type Preferences = {
   vimMode: boolean;
   editorWordWrap: boolean;
   editorWordWrapColumn: number;
-  showHidden: boolean;
   showHeaderSearch: boolean;
   terminalRenderer: "auto" | "webgl";
   terminalScreenReader: boolean;
@@ -188,8 +187,6 @@ const KEY_RESTORE_WINDOW = "restoreWindowState";
 const KEY_VIM_MODE = "vimMode";
 const KEY_EDITOR_WORD_WRAP = "editorWordWrap";
 const KEY_EDITOR_WORD_WRAP_COLUMN = "editorWordWrapColumn";
-const KEY_SHOW_HIDDEN = "showHidden";
-const LEGACY_KEY_SHOW_HIDDEN_DIRS = "showHiddenDirectories";
 const KEY_SHOW_HEADER_SEARCH = "showHeaderSearch";
 const KEY_TERMINAL_RENDERER = "terminalRenderer";
 const KEY_TERMINAL_SCREEN_READER = "terminalScreenReader";
@@ -259,7 +256,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   vimMode: false,
   editorWordWrap: false,
   editorWordWrapColumn: EDITOR_WORD_WRAP_COLUMN_DEFAULT,
-  showHidden: false,
   showHeaderSearch: false,
   terminalRenderer: "auto",
   terminalScreenReader: false,
@@ -355,10 +351,6 @@ export async function loadPreferences(): Promise<Preferences> {
       get<number>(KEY_EDITOR_WORD_WRAP_COLUMN) ??
         DEFAULT_PREFERENCES.editorWordWrapColumn,
     ),
-    showHidden:
-      get<boolean>(KEY_SHOW_HIDDEN) ??
-      get<boolean>(LEGACY_KEY_SHOW_HIDDEN_DIRS) ??
-      DEFAULT_PREFERENCES.showHidden,
     terminalRenderer:
       get<string>(KEY_TERMINAL_RENDERER) === "webgl" ? "webgl" : "auto",
     terminalScreenReader: get<boolean>(KEY_TERMINAL_SCREEN_READER) === true,
@@ -555,10 +547,6 @@ export async function setEditorWordWrapColumn(value: number): Promise<void> {
   );
 }
 
-export async function setShowHidden(value: boolean): Promise<void> {
-  await writePref(KEY_SHOW_HIDDEN, value);
-}
-
 export async function setShowHeaderSearch(value: boolean): Promise<void> {
   await writePref(KEY_SHOW_HEADER_SEARCH, value);
 }
@@ -727,7 +715,6 @@ export async function onPreferencesChange(
     [KEY_VIM_MODE]: "vimMode",
     [KEY_EDITOR_WORD_WRAP]: "editorWordWrap",
     [KEY_EDITOR_WORD_WRAP_COLUMN]: "editorWordWrapColumn",
-    [KEY_SHOW_HIDDEN]: "showHidden",
     [KEY_TERMINAL_RENDERER]: "terminalRenderer",
     [KEY_TERMINAL_SCREEN_READER]: "terminalScreenReader",
     [KEY_TERMINAL_CURSOR_BLINK]: "terminalCursorBlink",

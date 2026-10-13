@@ -12,9 +12,7 @@ import {
   PaintBoardIcon,
   Search01Icon,
   Settings01Icon,
-  SidebarLeftIcon,
   TerminalIcon,
-  ViewIcon,
 } from "@hugeicons/core-free-icons";
 import type { PaletteItem } from "./types";
 
@@ -24,14 +22,12 @@ export const COMMAND_GROUPS = [
   "Tabs",
   "Panes",
   "Search",
-  "View",
 ] as const;
 
 export type CommandPaletteActionContext = {
   tabs: Tab[];
   activeId: number;
   searchTarget: SearchTarget;
-  explorerRoot: string | null;
   home: string | null;
   openNewTab: () => void;
   openNewPreview: () => void;
@@ -39,9 +35,6 @@ export type CommandPaletteActionContext = {
   splitPaneRight: () => void;
   splitPaneDown: () => void;
   focusSearch: () => void;
-  focusExplorerSearch: () => void;
-  toggleSidebar: () => void;
-  toggleHiddenFiles: () => void;
   openSettings: () => void;
   openKeyboardShortcuts: () => void;
   spaces: { id: string; name: string }[];
@@ -233,40 +226,6 @@ export function createCommandItems(
         ? undefined
         : "palette.cmd.reason.noSearchableView",
       run: ctx.focusSearch,
-    },
-    {
-      id: "explorer.search",
-      title: "Search files by name",
-      titleKey: "palette.cmd.searchFilesByName",
-      group: "Search",
-      keywords: ["explorer", "workspace", "file", "open"],
-      icon: Search01Icon,
-      shortcutId: "explorer.search",
-      disabledReason: ctx.explorerRoot ? undefined : "No workspace root",
-      disabledReasonKey: ctx.explorerRoot
-        ? undefined
-        : "palette.cmd.reason.noWorkspaceRoot",
-      run: ctx.focusExplorerSearch,
-    },
-    {
-      id: "sidebar.toggle",
-      title: "Toggle file explorer",
-      titleKey: "palette.cmd.toggleFileExplorer",
-      group: "View",
-      keywords: ["sidebar", "files", "explorer"],
-      icon: SidebarLeftIcon,
-      shortcutId: "sidebar.toggle",
-      run: ctx.toggleSidebar,
-    },
-    {
-      id: "explorer.toggleHidden",
-      title: "Toggle hidden files",
-      titleKey: "palette.cmd.toggleHiddenFiles",
-      group: "View",
-      keywords: ["dotfiles", "hidden", "explorer", "gitignore", "env"],
-      icon: ViewIcon,
-      shortcutId: "explorer.toggleHidden",
-      run: ctx.toggleHiddenFiles,
     },
   ];
 }

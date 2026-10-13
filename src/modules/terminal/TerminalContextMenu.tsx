@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import {
   COMPACT_CONTENT,
   COMPACT_ITEM,
-} from "@/modules/explorer/lib/menuItemClass";
+} from "@/lib/menuItemClass";
 import {
   ClipboardPasteIcon,
   Copy01Icon,

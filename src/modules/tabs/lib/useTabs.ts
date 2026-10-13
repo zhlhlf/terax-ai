@@ -53,7 +53,7 @@ export type EditorTab = TabBase & {
   dirty: boolean;
   /**
    * True while the tab is in the transient "preview" state 鈥?opened by a
-   * single-click in the explorer and not yet pinned by the user. A preview tab
+   * single click and not yet pinned by the user. A preview tab
    * is replaced by the next single-click rather than accumulating.
    */
   preview: boolean;

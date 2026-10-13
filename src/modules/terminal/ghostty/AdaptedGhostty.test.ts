@@ -428,6 +428,18 @@ describe.each([
       }
     });
 
+    it("keeps the pending wrap across erase-in-line for a full-width row", () => {
+      const terminal = ghostty.createTerminal(10, 3);
+      try {
+        terminal.write(new TextEncoder().encode("ABCDEFGHIJ\x1b[KBCDE"));
+        const state = terminal.updateRenderState();
+        expect(asciiRows(state).slice(0, 2)).toEqual(["ABCDEFGHI", "BCDE"]);
+        expect(state.rowWrapped[1]).toBe(1);
+      } finally {
+        terminal.dispose();
+      }
+    });
+
     it("keeps tracked selections stable while output streams", () => {
       const terminal = ghostty.createTerminal(12, 3, {
         maxScrollbackBytes: 1024 * 1024,

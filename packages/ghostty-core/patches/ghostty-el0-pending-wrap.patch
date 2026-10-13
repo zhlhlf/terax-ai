@@ -1,0 +1,85 @@
+diff --git a/src/terminal/Screen.zig b/src/terminal/Screen.zig
+index 208e276..bbd3c4c 100644
+--- a/src/terminal/Screen.zig
++++ b/src/terminal/Screen.zig
+@@ -1585,7 +1585,13 @@ pub inline fn cursorMarkDirty(self: *Screen) void {
+ pub fn cursorResetWrap(self: *Screen) void {
+     // Reset the cursor's pending wrap state
+     self.cursor.pending_wrap = false;
++    self.cursorResetRowWrap();
++}
+ 
++/// Reset the cursor row's soft-wrap state without clearing the cursor's
++/// pending wrap. Erase-in-line keeps the pending wrap flag so a row filled
++/// to the right margin still wraps on the next printed character.
++pub fn cursorResetRowWrap(self: *Screen) void {
+     const page_row = self.cursor.page_row;
+ 
+     if (!page_row.wrap) return;
+diff --git a/src/terminal/Terminal.zig b/src/terminal/Terminal.zig
+index e9cc3b8..4e84236 100644
+--- a/src/terminal/Terminal.zig
++++ b/src/terminal/Terminal.zig
+@@ -3491,6 +3491,7 @@ pub fn eraseLine(
+     protected_req: bool,
+ ) void {
+     // Get our start/end positions depending on mode.
++    var keep_pending_wrap = false;
+     const start, const end = switch (mode) {
+         .right => right: {
+             var x = self.screens.active.cursor.x;
+@@ -3501,8 +3502,12 @@ pub fn eraseLine(
+                 x -= 1;
+             }
+ 
+-            // Reset our row's soft-wrap.
+-            self.screens.active.cursorResetWrap();
++            // Reset our row's soft-wrap but keep the cursor's pending
++            // wrap. EL0 does not move the cursor, so a row filled to the
++            // right margin must still wrap on the next printable character
++            // (nano's full-width title bar relies on this).
++            self.screens.active.cursorResetRowWrap();
++            keep_pending_wrap = true;
+ 
+             break :right .{ x, self.cols };
+         },
+@@ -3533,9 +3538,9 @@ pub fn eraseLine(
+         },
+     };
+ 
+-    // All modes will clear the pending wrap state and we know we have
+-    // a valid mode at this point.
+-    self.screens.active.cursor.pending_wrap = false;
++    // EL1 and EL2 keep the cursor on the erased row and clear the pending
++    // wrap state; EL0 preserves it (see above).
++    if (!keep_pending_wrap) self.screens.active.cursor.pending_wrap = false;
+ 
+     // We always mark our row as dirty
+     self.screens.active.cursorMarkDirty();
+@@ -3676,8 +3681,8 @@ pub fn eraseDisplay(
+                 );
+             }
+ 
+-            // Unsets pending wrap state. Should be done by eraseLine.
+-            assert(!self.screens.active.cursor.pending_wrap);
++            // EL0 preserves the pending wrap state, so ED below does too.
++
+         },
+ 
+         .above => {
+@@ -13688,13 +13693,13 @@ test "Terminal: eraseLine resets pending wrap" {
+     for ("ABCDE") |c| try t.print(c);
+     try testing.expect(t.screens.active.cursor.pending_wrap);
+     t.eraseLine(.right, false);
+-    try testing.expect(!t.screens.active.cursor.pending_wrap);
++    try testing.expect(t.screens.active.cursor.pending_wrap);
+     try t.print('B');
+ 
+     {
+         const str = try t.plainString(testing.allocator);
+         defer testing.allocator.free(str);
+-        try testing.expectEqualStrings("ABCDB", str);
++        try testing.expectEqualStrings("ABCD\nB", str);
+     }
+ }
+ 

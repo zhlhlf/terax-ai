@@ -11,10 +11,10 @@ per-terminal frame loop, or per-pane GPU lifecycle.
 - Restty commit: `7700b14a7643ba9240818209ef1e0aa90d83ad77`
 - Zig: `0.16.0`
 - Optimization: `ReleaseFast`, WebAssembly SIMD and scalar variants
-- SIMD artifact size: `696505` bytes
-- Scalar artifact size: `699516` bytes
-- SIMD SHA-256: `b2305e15dcf4bac59eef3e25687444b9678b79b23cf90d5d62718acab61966e7`
-- Scalar SHA-256: `8e9d194130ee714c6ced2ab1ccaff751cad28eea9bb2355dd9844034abe67775`
+- SIMD artifact size: `696533` bytes
+- Scalar artifact size: `699544` bytes
+- SIMD SHA-256: `ddb0e6cdca8c50f536b9b2276805cccf0d2d99f519d3b24e7d7b2d0c327a9d02`
+- Scalar SHA-256: `dbb53b6fda884d08fd411d737b846a547c631dcdf1c985c603454a7f66d2317a`
 
 Terax-specific changes include:
 
@@ -96,9 +96,34 @@ adjacent resize stability, oversized transient release, and a three-terminal
 Unicode-heavy agent workload. These measurements cover linear memory only;
 process RSS and GPU allocations are separate release gates.
 
+## Source patches
+
+`patches/ghostty-el0-pending-wrap.patch` applies to the pinned Ghostty source
+before building. Upstream Ghostty clears the cursor's pending wrap state on
+every erase-in-line mode. EL0 (`ESC[K`) does not move the cursor, so a row
+filled to the right margin must keep the pending wrap and move the next
+printable character onto the following row. Without the patch, a full-width
+row followed by EL0 and then text shifts the next line's first character into
+the previous row's last column, which breaks nano's title bar.
+
 ## Rebuild
 
-From `packages/ghostty-core/adapted/wasm`:
+The patch is applied to a local Ghostty checkout, so `build.zig.zon` points
+its `ghostty` dependency at that checkout with a `.path` entry instead of the
+pinned archive URL and hash. From `packages/ghostty-core/adapted/wasm`:
+
+```sh
+curl -L https://github.com/ghostty-org/ghostty/archive/f426f6f181ba95f45d33f683fb754b6359d9e04f.tar.gz | tar xz
+mv ghostty-f426f6f181ba95f45d33f683fb754b6359d9e04f ghostty
+git -C ghostty apply -p1 ../../patches/ghostty-el0-pending-wrap.patch
+```
+
+```zig
+// build.zig.zon
+.ghostty = .{ .path = "ghostty" },
+```
+
+Then build both variants from `packages/ghostty-core/adapted/wasm`:
 
 ```sh
 zig build -Dtarget=wasm32-freestanding -Doptimize=ReleaseFast
@@ -108,9 +133,9 @@ cp zig-out/bin/terax-ghostty-vt.wasm ../ghostty-vt-scalar.wasm
 shasum -a 256 ../ghostty-vt.wasm ../ghostty-vt-scalar.wasm
 ```
 
-`build.zig.zon` pins both the Ghostty archive URL and Zig package hash. A
-checksum change must be reviewed together with the source revision and the
-terminal compatibility and resource gates.
+The archived `build.zig.zon` pins both the Ghostty archive URL and Zig
+package hash. A checksum change must be reviewed together with the source
+revision, the patch, and the terminal compatibility and resource gates.
 
 Both variants run the same adapted-core regression suite. The Rust integration
 test `ghostty_artifacts` additionally validates the scalar binary with SIMD and

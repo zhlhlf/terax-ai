@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { Key, KeyAction, Mods } from "@terax/ghostty-core";
+import { Key, KeyAction, Mods } from "@terax/ghostty-core/protocol";
 import {
   ADAPTED_GHOSTTY_COMMIT,
   ADAPTED_GHOSTTY_WASM_SHA256,

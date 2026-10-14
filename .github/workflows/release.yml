@@ -220,7 +220,6 @@ jobs:
             if (-not (Test-Path $source)) { throw "Missing portable input: $source" }
             Copy-Item $source $stage -Force
           }
-          Copy-Item packages/ghostty-core/LICENSE "$stage/licenses/terminal/ghostty-web.txt"
           Copy-Item packages/ghostty-core/adapted/LICENSE.ghostty "$stage/licenses/terminal/ghostty.txt"
           Copy-Item packages/ghostty-core/adapted/LICENSE.restty "$stage/licenses/terminal/restty.txt"
           Copy-Item src/modules/terminal/ghostty/webgl/LICENSE.xterm-js "$stage/licenses/terminal/xterm-js.txt"
